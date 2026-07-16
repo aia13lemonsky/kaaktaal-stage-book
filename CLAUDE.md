@@ -63,7 +63,7 @@ doubt, favor the option that is less likely to break on stage over the one that 
 
 | Syntax | Meaning | Color |
 |---|---|---|
-| `[G]` | chord, immediately before the syllable it's played on | red `--red` (#E30613, the band's actual brand red — don't change this) |
+| `[G]` | chord, immediately before the syllable it's played on | pastel chrome yellow `--chord` (#F0DE8A), sized a bit larger than lyric text for on-stage visibility |
 | `<<note>>` | instruction/note, inline mid-lyric or alone on its own line | blue `--blue` |
 | `{Section}` | section label, own line | muted amber-bordered caps |
 | blank line | spacing | — |
@@ -79,12 +79,26 @@ photos/docs, which depends on this exact syntax staying stable).
   chords/7ths correctly. Compound annotated chords like `D(C/D)` or `Em (shell chord)` intentionally
   don't transpose (the parser can't understand free-text inside brackets) — this is accepted,
   known, documented behavior, not a bug to silently "fix" by changing parsing rules.
-- **Chord diagrams** (`getChordShape`, `chordDiagramSVG`) — open-position shapes for common
-  chords, computed barre shapes (E-shape/A-shape) for everything else, clearly labeled
-  "approximate" when it's not an exact voicing.
-- **Auto-scroll** — slider is 0.5–5 **lines per second**, measured against actual rendered line
-  height (`measureLineHeight`), not raw pixels, and not BPM-linked (that was a deliberate choice,
-  confirmed with the person — don't silently link it to BPM).
+- **Chord diagrams** (`getChordShapes`, `getChordNotes`, `chordPopupHTML`) — tapping a chord shows
+  up to 3 shapes at once: open position (if this exact chord has one), E-shape barre, A-shape barre,
+  and a D-shape barre (top-4-string movable form) filling in as a 3rd/alternate option — plus the
+  chord's note names (root/3rd/5th/[7th]) above the diagrams. Barre variants are skipped when their
+  reference root would land on fret 0 (degenerate with the open shape, not a distinct option) and
+  results are deduped by fret pattern. E/A-shape barre forms approximate `maj7` as `maj` (no accurate
+  6-string movable maj7 pattern is wired in); the D-shape form has a real maj7 pattern instead.
+  Clearly labeled "approximate" whenever a shape isn't an exact voicing, same as before.
+- **Auto-scroll** — slider is **seconds per line** (`perf.secPerLine`, 0.5–15s/line), measured
+  against actual rendered line height (`measureLineHeight`), not raw pixels, and not BPM-linked
+  (that was a deliberate choice, confirmed with the person — don't silently link it to BPM). This
+  unit replaced an earlier "lines per second" framing: at the slow end (ballads/rubato), fractional
+  lines/sec values were too coarse to fine-tune and still felt too fast even at the slider's floor;
+  seconds-per-line gives real, extendable numbers at the slow end instead.
+  **Implementation note:** `scrollTop` only ever reports whole pixels, so the per-frame progress
+  is tracked in a separate float (`scrollAccum` in `startAutoscroll`) rather than accumulated by
+  reading `container.scrollTop` back each frame — at slow speeds the per-frame delta is well under
+  1px, and `scrollTop += fraction` silently never moves because every read rounds back to the same
+  integer. This broke auto-scroll entirely once the slow end got genuinely slow; don't revert to
+  the read-back pattern.
 - **Metronome** — small toggle-able dot row, beat count driven by `timeSig`, stays static if no
   BPM is set, sound is off by default (live mic'd performance — an audible click would bleed into
   the recording/PA), generated via Web Audio, no audio file asset.
@@ -137,26 +151,41 @@ photos/docs, which depends on this exact syntax staying stable).
 
 ## What's NOT built yet — this is the actual work
 
-1. **30-song starter package**: replace the single demo `seedSongs()` entry with a real 30-song
-   library, each with `version`/`updatedAt`/`updatedBy` already set, so anyone who opens a fresh
-   copy of the app gets the band's actual repertoire pre-loaded.
-2. **Hosting**: a GitHub repo, deployed to GitHub Pages, so there's a stable URL for "Add to Home
+1. **Hosting**: a GitHub repo, deployed to GitHub Pages, so there's a stable URL for "Add to Home
    Screen" to produce a real installable icon (this also fixes reliable auto-update, which a
    locally-saved HTML file can't do on its own). PWA conversion, icons, and asset extraction are
    done — this is the last step, and it's the person's call when to actually create/push the repo.
 
+## Real song content stays out of the repo — decided, don't revisit silently
+
+`seedSongs()` still ships just the placeholder demo entry, on purpose. A real first set (25 songs,
+`kaaktaal-songs.json` in this same folder) exists, but was deliberately **not** baked into
+`seedSongs()`/committed, because the GitHub repo is public (required for free Pages hosting) and
+hardcoding real original lyrics/chords into `index.html` would publish them in that public repo's
+source. That cuts against this project's own design principle — song content is meant to move
+between band members via file-based export/import, never committed to a networked/public place.
+
+Instead: `kaaktaal-songs.json` and `kaaktaal-song-format-guide.md` are both listed in `.gitignore`.
+The person shares the JSON file with the band directly (however they choose — it's their call, not
+this repo's concern), and each band member imports it once via the app's own Import button after
+installing. If asked to "add the real songs to the app," don't put them in `seedSongs()` or commit
+them — point back to this note and the Import flow instead, unless the person explicitly says they
+want the repo's visibility/privacy tradeoff reconsidered.
+
 ## Style
 
-Dark, near-black stage palette (`--bg: #0B0B0C`), warm off-white lyric text, red for chords, blue
-for notes, amber (`#E8A33D`) for interactive UI/brand chrome, system font stack only (no web
-fonts — reliability over polish). Keep this. Any new UI should read as an extension of it, not a
+Dark, near-black stage palette (`--bg: #0B0B0C`), warm off-white lyric text, pastel chrome yellow
+(`--chord: #F0DE8A`) for chords, blue for notes, amber (`#E8A33D`) for interactive UI/brand chrome,
+system font stack only (no web fonts — reliability over polish). The band's brand red (`--red:
+#E30613`) is still used for non-chord accents (metronome downbeat, danger states) — don't repurpose
+it back onto chord text. Keep this. Any new UI should read as an extension of it, not a
 departure.
 
 ## Files in this handoff
 
-- `kaaktaal-stage-book.html` — the current app, single source of truth. Gets renamed to `index.html`
-  when hosted on GitHub Pages (Pages serves that filename at the domain root) — if you see both
-  names mentioned across sessions, that rename is why.
+- `index.html` — the current app, single source of truth. Was named `kaaktaal-stage-book.html`
+  before hosting setup; renamed so GitHub Pages serves it at the domain root — if older notes
+  mention the old filename, that rename is why.
 - `manifest.json` — PWA manifest, references the icon files below
 - `sw.js` — service worker (app-shell cache-first + update-prompt handshake). **Bump `CACHE_NAME`
   on every deploy.**
@@ -167,4 +196,7 @@ departure.
 - `kaaktaal-wordmark-source.png` / `kaaktaal-badge-source.png` — original logo files, full-res,
   untouched — source material for the generated icons above, not used directly by the app
 - `kaaktaal-song-format-guide.md` — the song-notation spec, shared with a separate song-conversion
-  project; reference only, don't duplicate/fork this content into the app repo
+  project; reference only, don't duplicate/fork this content into the app repo. Gitignored.
+- `kaaktaal-songs.json` — the band's real first 25-song set. Gitignored on purpose — see "Real song
+  content stays out of the repo" above. Not a source file for the app itself; it's the payload the
+  person shares with the band for each person to Import locally.

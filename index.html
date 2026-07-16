@@ -24,6 +24,7 @@
     --amber-dim: #6B4E22;
     --red: #E30613;
     --red-dim: #5C0A0F;
+    --chord: #F0DE8A;
     --blue: #58B4E0;
     --green: #6FBF8B;
     --danger: #C1544A;
@@ -114,7 +115,7 @@
   .row3{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; }
   .editor textarea{ min-height:280px; font-family:var(--font-chord); font-size:15px; line-height:1.6; resize:vertical; }
   .help{ font-size:12.5px; color:var(--muted); line-height:1.7; background:var(--surface); border:1px dashed var(--line); border-radius:10px; padding:10px 12px; }
-  .help .red{ color:var(--red); font-weight:600; }
+  .help .red{ color:var(--chord); font-weight:600; }
   .help .blue{ color:var(--blue); font-weight:600; }
   .help .amber{ color:var(--amber); font-weight:600; }
   .versionline{ font-size:12px; color:var(--ink-dim); }
@@ -193,10 +194,10 @@
   }
   .lyricsWrap{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:22px 18px 40vh; }
   .line{ margin-bottom:22px; }
-  .seg{ display:inline-block; position:relative; padding-top:1.5em; white-space:pre; }
+  .seg{ display:inline-block; position:relative; padding-top:1.55em; white-space:pre; }
   .seg .chord{
     position:absolute; top:0; left:0; font-family:var(--font-chord); font-weight:700;
-    color:var(--red); font-size:0.72em; letter-spacing:0.2px;
+    color:var(--chord); font-size:1.15em; letter-spacing:0.2px;
   }
   .seg .lyric{ font-size:1em; color:var(--ink); }
   .seg .note{ font-size:1em; color:var(--blue); font-style:italic; }
@@ -216,9 +217,13 @@
     background:var(--surface); border-radius:18px 18px 0 0; padding:22px 24px calc(28px + env(safe-area-inset-bottom));
     width:100%; max-width:640px; text-align:center;
   }
-  .diagramCard .cname{ font-family:var(--font-chord); font-size:20px; font-weight:700; color:var(--red); margin-bottom:10px; }
-  .diagramCard svg{ width:150px; height:180px; }
-  .diagramCard .approx{ font-size:11px; color:var(--muted); margin-top:6px; }
+  .diagramCard .cname{ font-family:var(--font-chord); font-size:20px; font-weight:700; color:var(--chord); margin-bottom:6px; }
+  .diagramCard .cnotes{ font-family:var(--font-chord); font-size:13px; color:var(--ink-dim); letter-spacing:0.5px; margin-bottom:16px; }
+  .diagramCard .approx{ font-size:11px; color:var(--muted); margin-top:4px; }
+  .diagramRow{ display:flex; gap:16px; overflow-x:auto; justify-content:flex-start; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; }
+  .diagramItem{ flex:0 0 auto; }
+  .diagramItem svg{ width:120px; height:144px; display:block; }
+  .diagramItem .slabel{ font-size:11.5px; color:var(--ink-dim); margin-top:4px; }
 
   /* import results */
   .resultCard{
@@ -469,31 +474,74 @@ const A_SHAPE = {
   '7': f => [null, f, f+2, f, f+2, f],
   m7:  f => [null, f, f+2, f, f+1, f],
 };
-function getChordShape(chordName){
+// Movable D-shape barre (top 4 strings only, low E/A muted) — derived directly
+// from the open D-family voicings, including a real (non-approximated) maj7
+// pattern, unlike the E/A shapes below which only cover maj/m/7/m7.
+const D_SHAPE = {
+  maj:  f => [null, null, f, f+2, f+3, f+2],
+  m:    f => [null, null, f, f+2, f+3, f+1],
+  '7':  f => [null, null, f, f+2, f+1, f+2],
+  m7:   f => [null, null, f, f+2, f+1, f+1],
+  maj7: f => [null, null, f, f+2, f+2, f+2],
+};
+
+const NOTE_INTERVALS = {maj:[0,4,7], m:[0,3,7], '7':[0,4,7,10], m7:[0,3,7,10], maj7:[0,4,7,11]};
+function getChordNotes(chordName){
   const p = parseChord(chordName);
   if(!p) return null;
+  const rootIdx = CHROMATIC.indexOf(p.root);
+  if(rootIdx === -1) return null;
+  const quality = classifyQuality(p.suffix);
+  return NOTE_INTERVALS[quality].map(iv => CHROMATIC[(rootIdx + iv) % 12]);
+}
+
+// Up to 3 of the most common movable/open shapes for a chord: its open-position
+// voicing (if one exists for this exact quality), plus E-shape and A-shape
+// barre forms, plus a D-shape barre form (which also covers maj7 accurately,
+// unlike the E/A shapes). A barre form is skipped when its reference root
+// would sit at fret 0 — that's degenerate with the open shape itself, not a
+// distinct third option. Results are deduped and open-position (if present)
+// always leads.
+function getChordShapes(chordName){
+  const p = parseChord(chordName);
+  if(!p) return [];
+  const rootIdx = CHROMATIC.indexOf(p.root);
+  if(rootIdx === -1) return [];
   const quality = classifyQuality(p.suffix);
   const exactSuffixes = {maj:'', m:'m', '7':'7', m7:'m7', maj7:'maj7'};
-  const isExact = p.suffix === exactSuffixes[quality];
+  const isExactSuffix = p.suffix === exactSuffixes[quality];
+
+  const results = [];
   const lookupKey = p.root + (quality === 'maj' ? '' : quality);
-  if(isExact && OPEN_SHAPES[lookupKey]) return {frets: OPEN_SHAPES[lookupKey].frets, base:1, approx:false};
-  const shapeQuality = quality === 'maj7' ? 'maj' : quality;
-  const rootIdx = CHROMATIC.indexOf(p.root);
-  const eIdx = CHROMATIC.indexOf('E');
-  const aIdx = CHROMATIC.indexOf('A');
-  const fE = (rootIdx - eIdx + 12) % 12;
-  const fA = (rootIdx - aIdx + 12) % 12;
-  const useE = fE <= fA;
-  const f = useE ? (fE === 0 ? 1 : fE) : (fA === 0 ? 1 : fA);
-  const frets = useE ? E_SHAPE[shapeQuality](f) : A_SHAPE[shapeQuality](f);
-  const base = Math.min(...frets.filter(x => x !== null && x > 0), f);
-  return {frets, base: base > 1 ? base : 1, approx: !isExact};
-}
-function chordDiagramSVG(shape, label){
-  if(!shape){
-    return `<div class="cname">${escapeHtml(label)}</div><div class="approx">No diagram available for this chord.</div>`;
+  if(isExactSuffix && OPEN_SHAPES[lookupKey]){
+    results.push({frets: OPEN_SHAPES[lookupKey].frets, base:1, approx:false, label:'Open position'});
   }
-  const {frets, base, approx} = shape;
+
+  const barreQuality = quality === 'maj7' ? 'maj' : quality;
+  const barreApprox = !isExactSuffix || quality === 'maj7';
+  [['E', E_SHAPE, 'E-shape'], ['A', A_SHAPE, 'A-shape']].forEach(([refName, table, label]) => {
+    const f = (rootIdx - CHROMATIC.indexOf(refName) + 12) % 12;
+    if(f === 0) return;
+    const frets = table[barreQuality](f);
+    const base = Math.min(f, ...frets.filter(x => x !== null && x > 0));
+    results.push({frets, base: base > 1 ? base : 1, approx: barreApprox, label: `${label} barre`});
+  });
+
+  const fD = (rootIdx - CHROMATIC.indexOf('D') + 12) % 12;
+  if(fD !== 0){
+    const frets = D_SHAPE[quality](fD);
+    const base = Math.min(fD, ...frets.filter(x => x !== null && x > 0));
+    results.push({frets, base: base > 1 ? base : 1, approx: !isExactSuffix, label:'D-shape barre'});
+  }
+
+  const seen = new Set();
+  return results
+    .filter(r => { const key = r.frets.join(','); if(seen.has(key)) return false; seen.add(key); return true; })
+    .sort((a,b) => (a.label==='Open position'?-1:0) - (b.label==='Open position'?-1:0) || a.base - b.base)
+    .slice(0,3);
+}
+function chordShapeSVG(shape){
+  const {frets, base} = shape;
   const W=150, H=180, left=20, top=26, stringGap=(W-2*left)/5, fretGap=(H-top-20)/4;
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   svg += `<rect x="${left}" y="${top}" width="${W-2*left}" height="${base===1?4:1.5}" fill="${base===1?'#F2EFE9':'#6F6B67'}"/>`;
@@ -511,7 +559,7 @@ function chordDiagramSVG(shape, label){
   frets.forEach((fr, s) => {
     const x = left + s*stringGap;
     if(fr === null){
-      svg += `<text x="${x}" y="${top-9}" font-size="12" fill="#9C9893" text-anchor="middle">Ã—</text>`;
+      svg += `<text x="${x}" y="${top-9}" font-size="12" fill="#9C9893" text-anchor="middle">×</text>`;
     } else if(fr === 0){
       svg += `<circle cx="${x}" cy="${top-11}" r="4.5" fill="none" stroke="#F2EFE9" stroke-width="1.4"/>`;
     } else {
@@ -521,7 +569,19 @@ function chordDiagramSVG(shape, label){
     }
   });
   svg += `</svg>`;
-  return `<div class="cname">${escapeHtml(label)}</div>${svg}${approx ? '<div class="approx">approximate shape</div>' : ''}`;
+  return svg;
+}
+function chordShapeItemHTML(shape){
+  return `<div class="diagramItem">${chordShapeSVG(shape)}<div class="slabel">${escapeHtml(shape.label)}</div>${shape.approx ? '<div class="approx">approximate</div>' : ''}</div>`;
+}
+function chordPopupHTML(chordName){
+  const shapes = getChordShapes(chordName);
+  const notes = getChordNotes(chordName);
+  const notesHTML = notes ? `<div class="cnotes">${notes.map(escapeHtml).join(' · ')}</div>` : '';
+  if(shapes.length === 0){
+    return `<div class="cname">${escapeHtml(chordName)}</div>${notesHTML}<div class="approx">No diagram available for this chord.</div>`;
+  }
+  return `<div class="cname">${escapeHtml(chordName)}</div>${notesHTML}<div class="diagramRow">${shapes.map(chordShapeItemHTML).join('')}</div>`;
 }
 
 /* ============================================================
@@ -666,7 +726,7 @@ function showImportResults(results){
 let songs = loadSongs();
 let setlists = loadSetlists();
 let route = {view:'library'};
-let perf = {semitone:0, fontScale:1, scrolling:false, speed:1.5, wakeLock:null};
+let perf = {semitone:0, fontScale:1, scrolling:false, secPerLine:10, wakeLock:null};
 let metro = {running:false, intervalId:null, beatIndex:0, soundOn:(localStorage.getItem('stagebook_metro_sound')==='1'), flashOn:(localStorage.getItem('stagebook_metro_flash')==='1')};
 let selectMode = false;
 let selectedIds = new Set();
@@ -981,7 +1041,7 @@ function renderEditor(id){
         <textarea id="fBody" placeholder="[G]Type lyrics here with [C]chords in brackets">${escapeHtml(s.body||'')}</textarea>
       </div>
       <div class="help">
-        <span class="red">[G]</span> chord right before its syllable — shows red, above the word.<br>
+        <span class="red">[G]</span> chord right before its syllable — shows in pastel yellow, above the word.<br>
         <span class="blue">&lt;&lt;softer here&gt;&gt;</span> instruction or note — shows blue, inline or on its own line.<br>
         <span class="amber">{Chorus}</span> section label, on its own line.<br>
         Lyrics with no marker just show in white. Blank lines add spacing.
@@ -1049,7 +1109,7 @@ function renderEditor(id){
 }
 
 /* ---------- PERFORM ---------- */
-let scrollRAF = null, lastTs = null, cachedLineHeight = null;
+let scrollRAF = null, lastTs = null, cachedLineHeight = null, scrollAccum = 0;
 function measureLineHeight(container){
   // Average vertical space per content block (lyric line, note line, section tag,
   // blank spacer) — a good-enough proxy for "one line" that adapts to font size
@@ -1067,12 +1127,18 @@ function stopAutoscroll(){
 function startAutoscroll(container){
   perf.scrolling = true;
   cachedLineHeight = measureLineHeight(container);
+  // scrollTop only ever reports whole pixels, so accumulating fractional progress
+  // straight onto container.scrollTop rounds every sub-1px/frame increment down to
+  // nothing — it can never build up. Track the true (fractional) position ourselves
+  // and only hand the browser the rounded result each frame.
+  scrollAccum = container.scrollTop;
   requestWakeLock();
   const step = (ts) => {
     if(!perf.scrolling) return;
     if(lastTs != null){
       const dt = (ts - lastTs) / 1000;
-      container.scrollTop += perf.speed * cachedLineHeight * dt;
+      scrollAccum += (cachedLineHeight / perf.secPerLine) * dt;
+      container.scrollTop = scrollAccum;
     }
     lastTs = ts;
     scrollRAF = requestAnimationFrame(step);
@@ -1182,8 +1248,8 @@ function renderPerform(id){
       </div>
       <div class="subrow">
         <label>Scroll</label>
-        <input type="range" id="speedSlider" min="0.5" max="5" step="0.1" value="${perf.speed}">
-        <span class="speedval" id="speedVal">${perf.speed.toFixed(1)} ln/s</span>
+        <input type="range" id="speedSlider" min="0.5" max="15" step="0.5" value="${perf.secPerLine}">
+        <span class="speedval" id="speedVal">${perf.secPerLine}s/line</span>
       </div>
       <div class="metroRow hidden" id="metroRow">
         <div class="metroDots" id="metroDots"></div>
@@ -1294,8 +1360,8 @@ function renderPerform(id){
     }
   });
   app.querySelector('#speedSlider').addEventListener('input', e => {
-    perf.speed = Number(e.target.value);
-    speedVal.textContent = perf.speed.toFixed(1) + ' ln/s';
+    perf.secPerLine = Number(e.target.value);
+    speedVal.textContent = perf.secPerLine + 's/line';
   });
 
   let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
@@ -1377,10 +1443,9 @@ function transposeKeyLabel(key, semitone){
   return transposeChord(key, semitone);
 }
 function openChordDiagram(chordName){
-  const shape = getChordShape(chordName);
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
-  overlay.innerHTML = `<div class="diagramCard">${chordDiagramSVG(shape, chordName)}</div>`;
+  overlay.innerHTML = `<div class="diagramCard">${chordPopupHTML(chordName)}</div>`;
   overlay.addEventListener('click', () => overlay.remove());
   document.body.appendChild(overlay);
 }

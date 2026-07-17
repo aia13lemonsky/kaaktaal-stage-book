@@ -49,30 +49,32 @@
   /* ---------- top bar ---------- */
   .topbar{
     display:flex; align-items:center; gap:8px;
-    padding:16px 16px 12px; position:sticky; top:0; z-index:20;
+    padding:12px 14px 10px; position:sticky; top:0; z-index:20;
     background:linear-gradient(var(--bg) 75%, transparent);
   }
   .topbar h1{
-    font-family:var(--font-display); font-weight:700; font-size:22px; margin:0; letter-spacing:0.2px;
+    font-family:var(--font-display); font-weight:700; font-size:21px; margin:0; letter-spacing:0.2px;
   }
-  .brandmark{ height:30px; width:auto; display:block; }
+  .brandmark{ height:28px; width:auto; display:block; }
   .iconbtn{
     width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;
     background:var(--surface); color:var(--ink-dim); font-size:18px; flex-shrink:0;
   }
   .iconbtn.active{ background:var(--amber); color:#1B1204; }
   .iconbtn:active{ background:var(--surface-2); }
+  .iconbtn.back{ background:var(--amber); color:#1B1204; font-weight:700; font-size:20px; }
+  .iconbtn.back:active{ background:var(--amber-dim); }
   .spacer{ flex:1; }
 
   /* ---------- library ---------- */
   .search{
-    margin:0 16px 10px; padding:12px 14px; border-radius:12px; background:var(--surface);
-    border:1px solid var(--line); color:var(--ink); font-size:16px; width:calc(100% - 32px);
+    margin:0 14px 8px; padding:11px 14px; border-radius:12px; background:var(--surface);
+    border:1px solid var(--line); color:var(--ink); font-size:16px; width:calc(100% - 28px);
   }
   .search::placeholder{ color:var(--muted); }
-  .songlist{ padding:4px 16px 110px; display:flex; flex-direction:column; gap:8px; }
+  .songlist{ padding:4px 14px 110px; display:flex; flex-direction:column; gap:7px; }
   .songrow{
-    display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:12px;
+    display:flex; align-items:center; gap:11px; padding:11px 14px; border-radius:12px;
     background:var(--surface); border:1px solid var(--line);
   }
   .songrow.selected{ border-color:var(--amber); background:rgba(232,163,61,0.08); }
@@ -188,11 +190,7 @@
   }
   .tapbtn:active{ background:var(--amber); color:#1B1204; }
 
-  .sectionBar{
-    padding:6px 14px; border-bottom:1px solid var(--line); flex-shrink:0; background:var(--surface);
-    font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;
-  }
-  .lyricsWrap{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:22px 18px 40vh; }
+  .lyricsWrap{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px 40vh; }
   .line{ margin-bottom:22px; }
   .seg{ display:inline-block; position:relative; padding-top:1.55em; white-space:pre; }
   .seg .chord{
@@ -200,6 +198,10 @@
     color:var(--chord); font-size:1.15em; letter-spacing:0.2px;
   }
   .seg .lyric{ font-size:1em; color:var(--ink); }
+  /* chord with no lyric under it: the hidden lyric copy reserves the chord's
+     own width so instrumental chord runs don't pile on top of each other */
+  .seg.bare .lyric{ visibility:hidden; font-size:1.15em; }
+  .seg.bare{ margin-right:1.2ch; }
   .seg .note{ font-size:1em; color:var(--blue); font-style:italic; }
   .noteline{
     color:var(--blue); font-style:italic; font-size:0.92em; opacity:0.95;
@@ -261,22 +263,44 @@
     background:#1B1204; color:var(--amber); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:700; flex-shrink:0;
   }
 
-  /* panic view: lyrics only, huge text */
-  .panicView{
-    position:fixed; inset:0; z-index:95; background:var(--bg); overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    padding:calc(26px + env(safe-area-inset-top)) 22px calc(60px + env(safe-area-inset-bottom));
+  /* notice banner (repo-hosted notice.json) */
+  .notice{
+    margin:0 14px 8px; padding:7px 12px; border-radius:10px; background:#C9556A;
+    display:flex; align-items:center; gap:10px; font-size:13px; color:#fff;
   }
-  .panicView .ptitle{
-    font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;
-    text-align:center; margin-bottom:20px;
+  .notice .txt{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+  .notice button{
+    background:rgba(0,0,0,0.28); color:#fff; border-radius:8px; padding:5px 11px;
+    font-size:12px; font-weight:600; flex-shrink:0;
   }
-  .panicView .pline{ font-size:clamp(26px, 7vw, 42px); line-height:1.5; font-weight:600; color:var(--ink); }
-  .panicView .pspacer{ height:0.8em; }
-  .panicView .phint{
-    position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%);
-    font-size:11px; color:var(--muted);
+
+  /* color tag picker (personal, per-phone) */
+  .colorRow{ display:flex; gap:10px; align-items:center; padding:2px 0; }
+  .colorDot{
+    width:26px; height:26px; border-radius:50%; border:2px solid var(--line); flex-shrink:0;
+    padding:0;
   }
+  .colorDot.none{ background:var(--surface-2); position:relative; }
+  .colorDot.none::after{ content:'\00d7'; color:var(--muted); font-size:14px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .colorDot.sel{ border-color:var(--ink); transform:scale(1.18); }
+  .colorHint{ font-size:11px; color:var(--muted); margin-left:4px; }
+
+  /* library scroll-position thumb */
+  .scrollThumb{
+    position:fixed; right:3px; top:0; width:4px; border-radius:2px; background:var(--amber);
+    opacity:0; transition:opacity .25s; z-index:60; pointer-events:none;
+  }
+  .scrollThumb.show{ opacity:0.65; }
+
+  /* full-screen lyric view */
+  .fsbtn{
+    position:fixed; right:14px; bottom:calc(18px + env(safe-area-inset-bottom));
+    width:46px; height:46px; border-radius:50%; background:var(--surface-2);
+    border:1px solid var(--line); color:var(--ink-dim); font-size:20px; z-index:45;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fsbtn.active{ background:var(--amber); color:#1B1204; border-color:var(--amber); }
+  .stage.fs .stagehead, .stage.fs .ctrlbar, .stage.fs .subrow, .stage.fs .progressStrip{ display:none; }
 
   .edgeFlash{
     position:fixed; inset:0; z-index:85; pointer-events:none; opacity:0;
@@ -329,6 +353,82 @@ function loadSetlists(){
   }catch(e){ return []; }
 }
 function saveSetlists(list){ localStorage.setItem(SETLIST_KEY, JSON.stringify(list)); }
+
+// Personal, per-phone preferences — never shared, never version-bumped.
+// Per-song default scroll speed / key offset, local color tags, custom
+// library order, linked reference-track names, cached notice banner.
+const PREFS_KEY = 'stagebook_prefs_v1';
+function loadPrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+    return (p && typeof p === 'object') ? p : {};
+  }catch(e){ return {}; }
+}
+let prefs = loadPrefs();
+function savePrefs(){ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
+function songPref(id){
+  if(!prefs.songs) prefs.songs = {};
+  if(!prefs.songs[id]) prefs.songs[id] = {};
+  return prefs.songs[id];
+}
+const TAG_COLORS = ['', '#E35D6A', '#E8A33D', '#6FBF8B', '#58B4E0', '#B58CD9'];
+
+function orderedSongs(){
+  const list = [...songs];
+  const order = prefs.songOrder || [];
+  const pos = id => { const i = order.indexOf(id); return i === -1 ? Infinity : i; };
+  list.sort((a,b) => {
+    const ia = pos(a.id), ib = pos(b.id);
+    if(ia !== ib) return ia - ib;
+    return a.title.localeCompare(b.title);
+  });
+  return list;
+}
+
+/* ---------- reference-track storage (IndexedDB) ----------
+   Audio blobs are far too large for localStorage, so reference tracks are the
+   one thing stored in IndexedDB instead. The blob is COPIED into the app's own
+   storage at assign time — playback needs no file access and works offline. */
+function audioDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('stagebook-audio', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('tracks'); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function audioPut(id, blob){
+  const db = await audioDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('tracks', 'readwrite');
+    tx.objectStore('tracks').put(blob, id);
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function audioGet(id){
+  const db = await audioDB();
+  return new Promise((res, rej) => {
+    const rq = db.transaction('tracks').objectStore('tracks').get(id);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function audioRemove(id){
+  const db = await audioDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('tracks', 'readwrite');
+    tx.objectStore('tracks').delete(id);
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+let refAudio = {el:null, url:null, songId:null, playing:false};
+function stopRefAudio(){
+  if(refAudio.el){ try{ refAudio.el.pause(); }catch(e){} }
+  if(refAudio.url) URL.revokeObjectURL(refAudio.url);
+  refAudio = {el:null, url:null, songId:null, playing:false};
+}
 
 // Search matches title, artist, and an optional "also known as" field, so a
 // song titled in Bangla script can still be found by typing an English
@@ -621,6 +721,16 @@ function tokenizeLine(line){
   if(segs.length === 0) segs.push({type:'lyric', text: line});
   return segs;
 }
+// Section-type color coding for the {Section} label border — glanceable
+// structure without extra text. Pre-chorus must be tested before chorus.
+function sectionColor(name){
+  const n = name.toLowerCase();
+  if(/pre[\s-]?chorus/.test(n)) return '#F08A4B';
+  if(/chorus/.test(n)) return '#E35D6A';
+  if(/verse/.test(n)) return '#6FBF8B';
+  if(/bridge/.test(n)) return '#58B4E0';
+  return '#F0DE8A';
+}
 function renderBody(body, semitoneShift){
   const lines = body.split('\n');
   let html = '';
@@ -628,7 +738,7 @@ function renderBody(body, semitoneShift){
     const line = rawLine;
     if(line.trim() === ''){ html += '<div class="blankline"></div>'; continue; }
     const sectionMatch = line.trim().match(/^\{(.+)\}$/);
-    if(sectionMatch){ html += `<div class="sectiontag">${escapeHtml(sectionMatch[1])}</div>`; continue; }
+    if(sectionMatch){ html += `<div class="sectiontag" style="border-left-color:${sectionColor(sectionMatch[1])}">${escapeHtml(sectionMatch[1])}</div>`; continue; }
 
     const segs = tokenizeLine(line);
     if(segs.length === 1 && segs[0].type === 'note'){
@@ -639,7 +749,11 @@ function renderBody(body, semitoneShift){
     for(const seg of segs){
       if(seg.type === 'chord'){
         const displayChord = transposeChord(seg.chord, semitoneShift);
-        out += `<span class="seg" data-chord="${escapeHtml(displayChord)}"><span class="chord">${escapeHtml(displayChord)}</span><span class="lyric">${escapeHtml(seg.text)}</span></span>`;
+        // A chord with no lyric under it (instrumental sections like "[C]  [G]")
+        // gets an invisible copy of its own name as the lyric, so each chord
+        // reserves its real width instead of stacking on the next one.
+        const bare = !seg.text || !seg.text.trim();
+        out += `<span class="seg${bare ? ' bare' : ''}" data-chord="${escapeHtml(displayChord)}"><span class="chord">${escapeHtml(displayChord)}</span><span class="lyric">${bare ? escapeHtml(displayChord) : escapeHtml(seg.text)}</span></span>`;
       } else if(seg.type === 'note'){
         out += `<span class="seg"><span class="note">${escapeHtml(seg.text)}</span></span>`;
       } else {
@@ -739,10 +853,21 @@ function showToast(msg){
   setTimeout(()=>toastEl.classList.remove('show'), 2000);
 }
 
+// The phone's hardware/gesture back button works through the History API:
+// every non-library view pushes a state entry, and popstate re-renders from
+// the popped state. In-app back buttons still call go() directly.
+let suppressPush = false;
 function go(view, id, extra){
   route = Object.assign({view, id}, extra || {});
   stopAutoscroll();
   stopMetronome();
+  stopRefAudio();
+  if(!suppressPush){
+    try{
+      if(view === 'library') history.replaceState({view:'library'}, '');
+      else history.pushState(Object.assign({}, route), '');
+    }catch(e){ /* history API unavailable — in-app back buttons still work */ }
+  }
   render();
 }
 function render(){
@@ -751,14 +876,25 @@ function render(){
   if(route.view === 'perform') return renderPerform(route.id);
   if(route.view === 'setlists') return renderSetlists();
   if(route.view === 'setlistDetail') return renderSetlistDetail(route.id);
+  if(route.view === 'reorder') return renderReorder();
 }
 
 /* ---------- LIBRARY ---------- */
+function songRowHTML(s){
+  const ver = s.version || 1;
+  const meta = [s.artist, s.bpm ? s.bpm+' bpm' : '', `<span class="ver">v${ver}</span>${s.updatedAt ? ' · '+timeAgo(s.updatedAt) : ''}`].filter(Boolean).join(' · ');
+  const color = (prefs.songs && prefs.songs[s.id] && prefs.songs[s.id].color) || '';
+  return `
+  <div class="songrow ${selectedIds.has(s.id)?'selected':''}" data-id="${s.id}"${color ? ` style="border-left:4px solid ${color};"` : ''}>
+    ${selectMode ? `<div class="checkbox ${selectedIds.has(s.id)?'checked':''}">${selectedIds.has(s.id)?'&#10003;':''}</div>` : ''}
+    <div class="meta">
+      <div class="title">${escapeHtml(s.title || 'Untitled')}</div>
+      <div class="sub">${meta}</div>
+    </div>
+    ${s.key ? `<div class="key">${escapeHtml(s.key)}</div>` : ''}
+  </div>`;
+}
 function renderLibrary(filter=''){
-  const list = songs
-    .filter(s => matchesSearch(s, filter))
-    .sort((a,b) => a.title.localeCompare(b.title));
-
   app.innerHTML = `
     <div class="topbar">
       <img class="brandmark" alt="Kaaktaal" src="kaaktaal-wordmark.png">
@@ -768,77 +904,151 @@ function renderLibrary(filter=''){
       <button class="iconbtn" id="btnExport" title="Backup all songs">&#8681;</button>
       <button class="iconbtn" id="btnImport" title="Import / update songs">&#8679;</button>
     </div>
+    <div class="notice hidden" id="noticeBar"><span class="txt" id="noticeText"></span><button id="noticeBtn" class="hidden">Open</button></div>
     <input class="search" id="searchBox" placeholder="Search by title, artist, or nickname..." value="${escapeHtml(filter)}">
-    <div class="count">${songs.length} song${songs.length===1?'':'s'} in your book${selectMode ? ' · tap to select' : ''}</div>
+    <div class="count" id="countLine"></div>
     <div class="songlist" id="songlist"></div>
     ${selectMode ? '' : '<button class="fab" id="btnNew">+</button>'}
   `;
   const listEl = app.querySelector('#songlist');
-  if(list.length === 0){
-    listEl.innerHTML = `<div class="empty">No songs yet.<br>Tap + to add your first one.</div>`;
-  } else {
-    listEl.innerHTML = list.map(s => {
-      const ver = s.version || 1;
-      const meta = [s.artist, s.bpm ? s.bpm+' bpm' : '', `<span class="ver">v${ver}</span>${s.updatedAt ? ' · '+timeAgo(s.updatedAt) : ''}`].filter(Boolean).join(' · ');
-      return `
-      <div class="songrow ${selectedIds.has(s.id)?'selected':''}" data-id="${s.id}">
-        ${selectMode ? `<div class="checkbox ${selectedIds.has(s.id)?'checked':''}">${selectedIds.has(s.id)?'&#10003;':''}</div>` : ''}
-        <div class="meta">
-          <div class="title">${escapeHtml(s.title || 'Untitled')}</div>
-          <div class="sub">${meta}</div>
-        </div>
-        ${s.key ? `<div class="key">${escapeHtml(s.key)}</div>` : ''}
-      </div>`;
-    }).join('');
+  const countEl = app.querySelector('#countLine');
+  const searchBox = app.querySelector('#searchBox');
+
+  // The list is rebuilt on its own so typing in the search box never
+  // re-renders (and therefore never blurs) the input — a full re-render
+  // per keystroke was closing the phone keyboard after every letter.
+  function updateList(f){
+    countEl.innerHTML = `${songs.length} song${songs.length===1?'':'s'} in your book${selectMode ? ' · tap to select' : ''}`;
+    const list = orderedSongs().filter(s => matchesSearch(s, f));
+    if(list.length === 0){
+      listEl.innerHTML = `<div class="empty">${songs.length === 0 ? 'No songs yet.<br>Tap + to add your first one.' : 'No matches.'}</div>`;
+      return;
+    }
+    listEl.innerHTML = list.map(songRowHTML).join('');
     listEl.querySelectorAll('.songrow').forEach(row => {
       row.addEventListener('click', () => {
         if(selectMode){
           const id = row.dataset.id;
           if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
-          renderLibrary(filter);
+          updateList(searchBox.value);
+          renderSelectBar(searchBox);
         } else {
           go('perform', row.dataset.id);
         }
       });
-      if(!selectMode){
-        let pressTimer;
-        row.addEventListener('touchstart', () => { pressTimer = setTimeout(()=> go('editor', row.dataset.id), 550); });
-        row.addEventListener('touchend', () => clearTimeout(pressTimer));
-      }
     });
   }
+  updateList(filter);
+
   app.querySelector('#btnNew') && app.querySelector('#btnNew').addEventListener('click', () => {
     const s = {id:newId(), title:'', artist:'', key:'', capo:'', bpm:'', timeSig:'4/4', aliases:'', body:''};
     songs.push(s); saveSongs(songs);
     go('editor', s.id);
   });
-  app.querySelector('#searchBox').addEventListener('input', e => renderLibrary(e.target.value));
+  searchBox.addEventListener('input', e => updateList(e.target.value));
   app.querySelector('#btnSetlists').addEventListener('click', () => go('setlists'));
   app.querySelector('#btnExport').addEventListener('click', () => shareOrDownload(songs, `stagebook-backup-${Date.now()}.json`));
   app.querySelector('#btnImport').addEventListener('click', () => document.getElementById('importFile').click());
   app.querySelector('#btnSelect').addEventListener('click', () => {
     selectMode = !selectMode;
     if(!selectMode) selectedIds.clear();
-    renderLibrary(filter);
+    renderLibrary(searchBox.value);
   });
 
+  renderSelectBar(searchBox);
+  refreshNotice();
+}
+function renderSelectBar(searchBox){
   const existingBar = document.querySelector('.selectbar');
   if(existingBar) existingBar.remove();
-  if(selectMode){
-    const bar = document.createElement('div');
-    bar.className = 'selectbar';
-    bar.innerHTML = `
-      <button class="btn ghost" id="btnCancelSel">Cancel</button>
-      <button class="btn blue" id="btnShareSel">Share ${selectedIds.size} selected</button>
-    `;
-    document.body.appendChild(bar);
-    bar.querySelector('#btnCancelSel').addEventListener('click', () => { selectMode=false; selectedIds.clear(); renderLibrary(); });
-    bar.querySelector('#btnShareSel').addEventListener('click', () => {
-      if(selectedIds.size === 0){ showToast('Select at least one song first'); return; }
-      const picked = songs.filter(s => selectedIds.has(s.id));
-      shareOrDownload(picked, `stagebook-share-${Date.now()}.json`);
-    });
+  if(!selectMode) return;
+  const bar = document.createElement('div');
+  bar.className = 'selectbar';
+  bar.innerHTML = `
+    <button class="btn ghost" id="btnCancelSel">Cancel</button>
+    <button class="btn ghost" id="btnReorder">Reorder</button>
+    <button class="btn blue" id="btnShareSel">Share ${selectedIds.size} selected</button>
+  `;
+  document.body.appendChild(bar);
+  bar.querySelector('#btnCancelSel').addEventListener('click', () => { selectMode=false; selectedIds.clear(); renderLibrary(); });
+  bar.querySelector('#btnReorder').addEventListener('click', () => { selectMode=false; selectedIds.clear(); go('reorder'); });
+  bar.querySelector('#btnShareSel').addEventListener('click', () => {
+    if(selectedIds.size === 0){ showToast('Select at least one song first'); return; }
+    const picked = songs.filter(s => selectedIds.has(s.id));
+    shareOrDownload(picked, `stagebook-share-${Date.now()}.json`);
+  });
+}
+
+/* ---------- REORDER (custom library order, personal) ---------- */
+function renderReorder(){
+  const list = orderedSongs();
+  prefs.songOrder = list.map(s => s.id);
+  savePrefs();
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="iconbtn back" id="btnBack">&#8592;</button>
+      <h1>Reorder songs</h1>
+      <div class="spacer"></div>
+    </div>
+    <div class="count">This order is only on this phone. New songs sort alphabetically at the end.</div>
+    <div class="songlist" id="reorderList"></div>
+  `;
+  app.querySelector('#btnBack').addEventListener('click', () => go('library'));
+  const listEl = app.querySelector('#reorderList');
+  listEl.innerHTML = list.map((s, i) => `
+    <div class="songrow" data-idx="${i}">
+      <div class="meta"><div class="title">${i+1}. ${escapeHtml(s.title || 'Untitled')}</div></div>
+      <button class="smallbtn" data-act="up" ${i===0?'disabled':''}>&#8593;</button>
+      <button class="smallbtn" data-act="down" ${i===list.length-1?'disabled':''}>&#8595;</button>
+    </div>`).join('');
+  listEl.querySelectorAll('.songrow').forEach(row => {
+    const idx = Number(row.dataset.idx);
+    const move = (dir) => {
+      const j = idx + dir;
+      if(j < 0 || j >= prefs.songOrder.length) return;
+      const tmp = prefs.songOrder[idx];
+      prefs.songOrder[idx] = prefs.songOrder[j];
+      prefs.songOrder[j] = tmp;
+      savePrefs();
+      renderReorder();
+    };
+    row.querySelector('[data-act="up"]').addEventListener('click', () => move(-1));
+    row.querySelector('[data-act="down"]').addEventListener('click', () => move(1));
+  });
+}
+
+/* ---------- NOTICE BANNER (repo-hosted notice.json) ----------
+   The one sanctioned runtime fetch, and it's same-origin: notice.json sits
+   next to index.html in the repo. Whoever maintains the repo edits that file;
+   every phone picks it up automatically when online. Offline shows the last
+   cached notice; a phone that has never been online shows nothing. */
+function applyNotice(n){
+  const bar = document.getElementById('noticeBar');
+  if(!bar) return;
+  const btn = document.getElementById('noticeBtn');
+  if(n && n.text){
+    bar.classList.remove('hidden');
+    document.getElementById('noticeText').textContent = n.text;
+    if(n.link){
+      btn.classList.remove('hidden');
+      btn.onclick = () => window.open(n.link, '_blank');
+    } else {
+      btn.classList.add('hidden');
+    }
+  } else {
+    bar.classList.add('hidden');
   }
+}
+async function refreshNotice(){
+  applyNotice(prefs.noticeCache);
+  try{
+    const res = await fetch('notice.json', {cache:'no-store'});
+    if(!res.ok) return;
+    const data = await res.json();
+    prefs.noticeCache = {text: String(data.text || ''), link: String(data.link || '')};
+    savePrefs();
+    if(route.view === 'library') applyNotice(prefs.noticeCache);
+  }catch(e){ /* offline — cached notice (if any) stays up */ }
 }
 
 document.getElementById('importFile').addEventListener('change', e => {
@@ -860,7 +1070,7 @@ document.getElementById('importFile').addEventListener('change', e => {
 function renderSetlists(){
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">&#8592;</button>
       <h1>Setlists</h1>
       <div class="spacer"></div>
       <button class="iconbtn" id="btnNewSetlist">+</button>
@@ -882,7 +1092,7 @@ function renderSetlists(){
     return;
   }
   listEl.innerHTML = setlists.map(sl => `
-    <div class="songrow" data-id="${sl.id}">
+    <div class="songrow" data-id="${sl.id}"${sl.color ? ` style="border-left:4px solid ${sl.color};"` : ''}>
       <div class="meta">
         <div class="title">${escapeHtml(sl.name)}</div>
         <div class="sub">${sl.songIds.length} song${sl.songIds.length===1?'':'s'}</div>
@@ -912,7 +1122,7 @@ function renderSetlistDetail(id){
     : '';
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">&#8592;</button>
       <h1>${escapeHtml(setlist.name)}</h1>
       <div class="spacer"></div>
       <button class="iconbtn" id="btnRename" title="Rename">&#9998;</button>
@@ -920,12 +1130,20 @@ function renderSetlistDetail(id){
     </div>
     ${lengthLabel ? `<div class="count">${lengthLabel}</div>` : ''}
     <div class="editor" style="padding-top:0;">
+      <div class="colorRow" id="slColorRow">${TAG_COLORS.map(c => `<button class="colorDot ${c?'':'none'} ${(setlist.color||'')===c?'sel':''}" data-c="${c}"${c ? ` style="background:${c}"` : ''}></button>`).join('')}<span class="colorHint">color tag</span></div>
       <button class="btn primary" id="btnStartSet" style="margin-bottom:4px;">&#9654; Start set (${rows.length} song${rows.length===1?'':'s'})</button>
       <div id="setlistSongs" style="display:flex; flex-direction:column; gap:8px;"></div>
       <button class="btn ghost" id="btnAddSongs">+ Add songs</button>
     </div>
   `;
   app.querySelector('#btnBack').addEventListener('click', () => go('setlists'));
+  app.querySelectorAll('#slColorRow .colorDot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      setlist.color = dot.dataset.c || '';
+      saveSetlists(setlists);
+      app.querySelectorAll('#slColorRow .colorDot').forEach(d => d.classList.toggle('sel', d === dot));
+    });
+  });
   app.querySelector('#btnRename').addEventListener('click', () => {
     const name = prompt('Rename setlist', setlist.name);
     if(!name || !name.trim()) return;
@@ -1017,7 +1235,7 @@ function renderEditor(id){
   const ver = s.version || 0;
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">&#8592;</button>
       <h1>Edit Song</h1>
       <div class="spacer"></div>
       <button class="iconbtn" id="btnShareOne" title="Share this song">&#8593;</button>
@@ -1029,6 +1247,9 @@ function renderEditor(id){
       <div class="field"><label>Title</label><input id="fTitle" value="${escapeHtml(s.title)}" placeholder="Song title"></div>
       <div class="field"><label>Artist</label><input id="fArtist" value="${escapeHtml(s.artist||'')}" placeholder="Artist / band"></div>
       <div class="field"><label>Also search as (phonetic spelling, nicknames)</label><input id="fAliases" value="${escapeHtml(s.aliases||'')}" placeholder="e.g. golokdhadha, confusion song"></div>
+      <div class="field"><label>Color tag (only on this phone — saves instantly, no version bump)</label>
+        <div class="colorRow" id="songColorRow">${TAG_COLORS.map(c => `<button type="button" class="colorDot ${c?'':'none'} ${((prefs.songs && prefs.songs[s.id] && prefs.songs[s.id].color) || '')===c?'sel':''}" data-c="${c}"${c ? ` style="background:${c}"` : ''}></button>`).join('')}</div>
+      </div>
       <div class="row3">
         <div class="field"><label>Key</label><input id="fKey" value="${escapeHtml(s.key||'')}" placeholder="G"></div>
         <div class="field"><label>Capo</label><input id="fCapo" value="${escapeHtml(s.capo||'')}" placeholder="2"></div>
@@ -1057,6 +1278,14 @@ function renderEditor(id){
   app.querySelector('#btnBack').addEventListener('click', () => go('library'));
   app.querySelector('#btnCancel').addEventListener('click', () => go('library'));
   app.querySelector('#btnShareOne').addEventListener('click', () => shareOrDownload([s], `stagebook-${slug(s.title)}.json`));
+  app.querySelectorAll('#songColorRow .colorDot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      const c = dot.dataset.c || '';
+      if(c) songPref(s.id).color = c; else delete songPref(s.id).color;
+      savePrefs();
+      app.querySelectorAll('#songColorRow .colorDot').forEach(d => d.classList.toggle('sel', d === dot));
+    });
+  });
   const idEl = app.querySelector('#idCopy');
   if(idEl){
     idEl.addEventListener('click', async () => {
@@ -1120,11 +1349,13 @@ function measureLineHeight(container){
 }
 function stopAutoscroll(){
   perf.scrolling = false;
+  perf.holdScroll = false;
   if(scrollRAF) cancelAnimationFrame(scrollRAF);
   scrollRAF = null; lastTs = null;
   releaseWakeLock();
 }
 function startAutoscroll(container){
+  stopAutoscroll();
   perf.scrolling = true;
   cachedLineHeight = measureLineHeight(container);
   // scrollTop only ever reports whole pixels, so accumulating fractional progress
@@ -1135,12 +1366,43 @@ function startAutoscroll(container){
   requestWakeLock();
   const step = (ts) => {
     if(!perf.scrolling) return;
-    if(lastTs != null){
+    // Speed changes apply live (perf.secPerLine is read every frame) — nothing
+    // stops the scroll except the pause button or leaving the view. While a
+    // finger is on the lyrics (perf.holdScroll) we follow the user's position
+    // instead of writing, so manual nudges don't fight the auto-scroll.
+    if(perf.holdScroll){
+      scrollAccum = container.scrollTop;
+    } else if(lastTs != null){
       const dt = (ts - lastTs) / 1000;
       scrollAccum += (cachedLineHeight / perf.secPerLine) * dt;
-      container.scrollTop = scrollAccum;
+      const target = Math.round(scrollAccum);
+      if(Math.abs(container.scrollTop - target) > 24){
+        // large jump we didn't cause (momentum fling after touch release) —
+        // adopt the user's position rather than snapping back
+        scrollAccum = container.scrollTop;
+      } else {
+        container.scrollTop = scrollAccum;
+      }
     }
     lastTs = ts;
+    scrollRAF = requestAnimationFrame(step);
+  };
+  scrollRAF = requestAnimationFrame(step);
+}
+// Reference-track mode: scroll position is slaved to the audio clock, so the
+// lyrics land exactly at the end when the song ends, and pausing/stuttering
+// audio can never drift out of sync with the scroll.
+function startAudioScroll(container, audioEl){
+  stopAutoscroll();
+  perf.scrolling = true;
+  requestWakeLock();
+  const startPos = container.scrollTop;
+  const distance = Math.max(0, container.scrollHeight - container.clientHeight - startPos);
+  const step = () => {
+    if(!perf.scrolling) return;
+    if(audioEl.duration && !perf.holdScroll && !audioEl.paused){
+      container.scrollTop = startPos + distance * Math.min(1, audioEl.currentTime / audioEl.duration);
+    }
     scrollRAF = requestAnimationFrame(step);
   };
   scrollRAF = requestAnimationFrame(step);
@@ -1212,7 +1474,12 @@ function startMetronome(bpm, beats, dotEls){
 function renderPerform(id){
   const s = songs.find(x => x.id === id);
   if(!s) return go('library');
-  perf.semitone = 0; perf.fontScale = 1;
+  // Per-song personal defaults: saved key offset and scroll speed load
+  // automatically; the ★ button saves the current values as the new default.
+  const myPref = (prefs.songs && prefs.songs[id]) || {};
+  perf.semitone = (typeof myPref.semitone === 'number') ? myPref.semitone : 0;
+  perf.secPerLine = myPref.secPerLine || 10;
+  perf.fontScale = 1;
   const ver = s.version || 1;
   const inSetlist = route.setlistId ? setlists.find(sl => sl.id === route.setlistId) : null;
   const posLabel = inSetlist ? `${route.setlistIndex+1} / ${inSetlist.songIds.length} · ${escapeHtml(inSetlist.name)}` : '';
@@ -1220,20 +1487,20 @@ function renderPerform(id){
   app.innerHTML = `
     <div class="stage">
       <div class="stagehead">
-        <button class="iconbtn" id="btnBack">&#8592;</button>
+        <button class="iconbtn back" id="btnBack">&#8592;</button>
         <div class="titles">
           <div class="t1">${escapeHtml(s.title)}</div>
           <div class="t2">${escapeHtml(s.artist||'')}${s.bpm ? ' · '+s.bpm+' bpm' : ''}${s.capo ? ' · capo '+s.capo : ''} · <span class="ver">v${ver}</span>${s.updatedBy ? ' by '+escapeHtml(s.updatedBy) : ''}</div>
         </div>
         ${inSetlist ? `<div class="setpos">${posLabel}</div>` : ''}
-        <button class="iconbtn" id="btnPanic" title="Lyrics only, huge text">Aa</button>
+        <button class="iconbtn" id="btnRefAudio" title="Reference track (long-press to change)">&#9836;</button>
         <button class="iconbtn" id="btnEdit">&#9998;</button>
       </div>
       ${inSetlist ? `<div class="progressStrip"><div class="fill" style="width:${((route.setlistIndex+1)/inSetlist.songIds.length*100).toFixed(1)}%"></div></div>` : ''}
       <div class="ctrlbar">
         <div class="pill">
           <button id="keyDown">&#8722;</button>
-          <span class="val" id="keyVal">${escapeHtml(transposeKeyLabel(s.key, 0))}</span>
+          <span class="val" id="keyVal">${escapeHtml(transposeKeyLabel(s.key, perf.semitone))}</span>
           <button id="keyUp">&#43;</button>
         </div>
         <div class="pill">
@@ -1250,6 +1517,8 @@ function renderPerform(id){
         <label>Scroll</label>
         <input type="range" id="speedSlider" min="0.5" max="15" step="0.5" value="${perf.secPerLine}">
         <span class="speedval" id="speedVal">${perf.secPerLine}s/line</span>
+        <button class="smallbtn" id="btnPrefSave" title="Save current speed &amp; key as this song's default">&#9733;</button>
+        <button class="smallbtn" id="btnPrefRevert" title="Back to this song's saved default">&#8634;</button>
       </div>
       <div class="metroRow hidden" id="metroRow">
         <div class="metroDots" id="metroDots"></div>
@@ -1258,10 +1527,11 @@ function renderPerform(id){
         <button class="iconbtn ${metro.flashOn?'active':''}" id="btnMetroFlash" title="Full-screen edge flash">&#9889;</button>
         <button class="iconbtn" id="btnMetroSound" title="Click sound">${metro.soundOn ? '&#128266;' : '&#128263;'}</button>
       </div>
-      <div class="sectionBar hidden" id="sectionBar"></div>
       <div class="lyricsWrap" id="lyricsWrap" style="font-size:17px;">
-        ${renderBody(s.body || '', 0)}
+        ${renderBody(s.body || '', perf.semitone)}
       </div>
+      <button class="fsbtn" id="btnFS" title="Full screen">&#9974;</button>
+      <input type="file" id="refAudioFile" accept="audio/*">
     </div>
   `;
 
@@ -1332,7 +1602,124 @@ function renderPerform(id){
     else go('library');
   });
   app.querySelector('#btnEdit').addEventListener('click', () => go('editor', id));
-  app.querySelector('#btnPanic').addEventListener('click', () => showPanicView(s));
+
+  const PLAY_SVG = '<path d="M8 5v14l11-7-11-7z" fill="#E8A33D"/>';
+  const PAUSE_SVG = '<rect x="6" y="5" width="4" height="14" fill="#E8A33D"/><rect x="14" y="5" width="4" height="14" fill="#E8A33D"/>';
+
+  /* ---- reference track (personal, per-phone; never affects song version) ---- */
+  const btnRef = app.querySelector('#btnRefAudio');
+  const refFileInput = app.querySelector('#refAudioFile');
+  const btnMetroEl = app.querySelector('#btnMetro');
+  function refIcon(){
+    btnRef.innerHTML = refAudio.playing ? '&#9632;' : '&#9836;';
+    btnRef.classList.toggle('active', refAudio.playing);
+  }
+  function stopRef(){
+    stopRefAudio();
+    stopAutoscroll();
+    btnMetroEl.disabled = false;
+    btnMetroEl.style.opacity = '';
+    refIcon();
+    playIcon.innerHTML = PLAY_SVG;
+  }
+  async function playRef(){
+    let blob = null;
+    try{ blob = await audioGet(s.id); }catch(e){}
+    if(!blob){ refFileInput.click(); return; }
+    stopAutoscroll();
+    stopMetronome();
+    metroRow.classList.add('hidden');
+    btnMetroEl.disabled = true;
+    btnMetroEl.style.opacity = '0.35';
+    const url = URL.createObjectURL(blob);
+    const el = new Audio(url);
+    refAudio = {el, url, songId: s.id, playing: true};
+    el.addEventListener('loadedmetadata', () => {
+      if(refAudio.el === el) startAudioScroll(lyricsWrap, el);
+    });
+    el.addEventListener('ended', () => { if(refAudio.el === el) stopRef(); });
+    try{ await el.play(); }catch(e){ showToast('Could not play the linked track'); stopRef(); return; }
+    refIcon();
+    playIcon.innerHTML = PAUSE_SVG;
+  }
+  let refLongPress = null, refPressConsumed = false;
+  btnRef.addEventListener('touchstart', () => {
+    refPressConsumed = false;
+    refLongPress = setTimeout(() => { refPressConsumed = true; openRefOptions(); }, 650);
+  }, {passive:true});
+  btnRef.addEventListener('touchend', () => clearTimeout(refLongPress));
+  btnRef.addEventListener('contextmenu', (e) => { e.preventDefault(); openRefOptions(); });
+  btnRef.addEventListener('click', () => {
+    if(refPressConsumed){ refPressConsumed = false; return; }
+    if(refAudio.playing) stopRef(); else playRef();
+  });
+  refFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      await audioPut(s.id, file);
+      songPref(s.id).audioName = file.name;
+      savePrefs();
+      showToast('Track linked: ' + file.name);
+      playRef();
+    }catch(err){ showToast('Could not store the track'); }
+  });
+  function openRefOptions(){
+    const linkedName = (prefs.songs && prefs.songs[s.id] && prefs.songs[s.id].audioName) || '';
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `<div class="resultCard"><h2>Reference track</h2>
+      <div class="versionline" style="margin-bottom:12px;">${linkedName ? 'Linked: ' + escapeHtml(linkedName) : 'No track linked yet.'}</div>
+      <div class="btnrow"><button class="btn primary" id="refChoose">${linkedName ? 'Choose a different file' : 'Choose a file'}</button></div>
+      ${linkedName ? '<div class="btnrow" style="margin-top:8px;"><button class="btn danger" style="flex:1;" id="refRemove">Remove track</button></div>' : ''}
+      <div class="btnrow" style="margin-top:8px;"><button class="btn ghost" id="refCancel">Cancel</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#refChoose').addEventListener('click', () => { overlay.remove(); refFileInput.click(); });
+    overlay.querySelector('#refCancel').addEventListener('click', () => overlay.remove());
+    const rm = overlay.querySelector('#refRemove');
+    if(rm) rm.addEventListener('click', async () => {
+      overlay.remove();
+      if(refAudio.playing) stopRef();
+      try{ await audioRemove(s.id); }catch(e){}
+      delete songPref(s.id).audioName;
+      savePrefs();
+      showToast('Track removed');
+    });
+  }
+  refIcon();
+
+  /* ---- full-screen lyric view ---- */
+  const stageEl = app.querySelector('.stage');
+  app.querySelector('#btnFS').addEventListener('click', (e) => {
+    const fs = stageEl.classList.toggle('fs');
+    e.currentTarget.classList.toggle('active', fs);
+    try{
+      if(fs && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+      else if(!fs && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    }catch(err){ /* fullscreen API unavailable — CSS-only fullscreen still applies */ }
+  });
+
+  /* ---- per-song default speed & key ---- */
+  const speedSlider = app.querySelector('#speedSlider');
+  app.querySelector('#btnPrefSave').addEventListener('click', () => {
+    const p = songPref(id);
+    p.secPerLine = perf.secPerLine;
+    p.semitone = perf.semitone;
+    savePrefs();
+    showToast("Saved as this song's default (speed + key)");
+  });
+  app.querySelector('#btnPrefRevert').addEventListener('click', () => {
+    const p = (prefs.songs && prefs.songs[id]) || {};
+    perf.secPerLine = p.secPerLine || 10;
+    perf.semitone = (typeof p.semitone === 'number') ? p.semitone : 0;
+    speedSlider.value = perf.secPerLine;
+    speedVal.textContent = perf.secPerLine + 's/line';
+    refreshChords();
+    showToast('Back to default');
+  });
 
   app.querySelector('#keyUp').addEventListener('click', () => { perf.semitone++; refreshChords(); });
   app.querySelector('#keyDown').addEventListener('click', () => { perf.semitone--; refreshChords(); });
@@ -1340,7 +1727,6 @@ function renderPerform(id){
     lyricsWrap.innerHTML = renderBody(s.body || '', perf.semitone);
     keyVal.textContent = transposeKeyLabel(s.key, perf.semitone);
     attachChordTaps();
-    updateSectionBar();
   }
 
   app.querySelector('#fontUp').addEventListener('click', () => { perf.fontScale = Math.min(2, perf.fontScale + 0.1); applyFont(); });
@@ -1351,26 +1737,34 @@ function renderPerform(id){
   }
 
   app.querySelector('#btnPlay').addEventListener('click', () => {
+    if(refAudio.playing){ stopRef(); return; }
     if(perf.scrolling){
       stopAutoscroll();
-      playIcon.innerHTML = '<path d="M8 5v14l11-7-11-7z" fill="#E8A33D"/>';
+      playIcon.innerHTML = PLAY_SVG;
     } else {
       startAutoscroll(lyricsWrap);
-      playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="#E8A33D"/><rect x="14" y="5" width="4" height="14" fill="#E8A33D"/>';
+      playIcon.innerHTML = PAUSE_SVG;
     }
   });
-  app.querySelector('#speedSlider').addEventListener('input', e => {
+  // Speed changes apply live — the scroll loop reads perf.secPerLine every
+  // frame, so dragging the slider never stops or restarts the scroll.
+  speedSlider.addEventListener('input', e => {
     perf.secPerLine = Number(e.target.value);
     speedVal.textContent = perf.secPerLine + 's/line';
   });
 
+  // While a finger is on the lyrics, auto-scroll follows the user instead of
+  // fighting them, then resumes from wherever they let go. Only the pause
+  // button (or leaving the view) actually stops it.
   let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
-  lyricsWrap.addEventListener('touchstart', (e) => {
-    if(e.target.closest('.chord')) return;
-    if(perf.scrolling){
-      stopAutoscroll();
-      playIcon.innerHTML = '<path d="M8 5v14l11-7-11-7z" fill="#E8A33D"/>';
-    }
+  lyricsWrap.addEventListener('touchstart', () => { perf.holdScroll = true; }, {passive:true});
+  lyricsWrap.addEventListener('touchend', () => {
+    perf.holdScroll = false;
+    scrollAccum = lyricsWrap.scrollTop;
+  }, {passive:true});
+  lyricsWrap.addEventListener('touchcancel', () => {
+    perf.holdScroll = false;
+    scrollAccum = lyricsWrap.scrollTop;
   }, {passive:true});
   if(inSetlist){
     lyricsWrap.addEventListener('touchstart', (e) => {
@@ -1404,35 +1798,6 @@ function renderPerform(id){
   }
   attachChordTaps();
 
-  // Sticky "you are here" label: only shown once the real {Section} header has
-  // scrolled above the visible lyrics, so it doesn't add clutter most of the time.
-  const sectionBar = app.querySelector('#sectionBar');
-  let sectionTickScheduled = false;
-  function updateSectionBar(){
-    sectionTickScheduled = false;
-    const tags = Array.from(lyricsWrap.querySelectorAll('.sectiontag'));
-    if(tags.length === 0){ sectionBar.classList.add('hidden'); return; }
-    const wrapTop = lyricsWrap.getBoundingClientRect().top;
-    const scrollTop = lyricsWrap.scrollTop;
-    const contentTop = (tag) => tag.getBoundingClientRect().top - wrapTop + scrollTop;
-    let current = null;
-    for(const tag of tags){
-      if(contentTop(tag) <= scrollTop + 1) current = tag; else break;
-    }
-    if(current && contentTop(current) < scrollTop - 4){
-      sectionBar.textContent = current.textContent;
-      sectionBar.classList.remove('hidden');
-    } else {
-      sectionBar.classList.add('hidden');
-    }
-  }
-  lyricsWrap.addEventListener('scroll', () => {
-    if(sectionTickScheduled) return;
-    sectionTickScheduled = true;
-    requestAnimationFrame(updateSectionBar);
-  }, {passive:true});
-  updateSectionBar();
-
   if(inSetlist && route.setlistIndex === 0){
     showToast('Swipe left/right to move between songs in this set');
   }
@@ -1446,38 +1811,6 @@ function openChordDiagram(chordName){
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   overlay.innerHTML = `<div class="diagramCard">${chordPopupHTML(chordName)}</div>`;
-  overlay.addEventListener('click', () => overlay.remove());
-  document.body.appendChild(overlay);
-}
-
-// Strips chords, notes, and section tags to just the sung words — for the
-// moment a performer blanks on stage and needs the next line at a glance,
-// not the full chart.
-function stripToLyricsOnly(body){
-  const lines = (body || '').split('\n');
-  const out = [];
-  for(const raw of lines){
-    const trimmed = raw.trim();
-    if(trimmed === ''){ out.push(''); continue; }
-    if(/^\{.+\}$/.test(trimmed)) continue;
-    const stripped = raw.replace(/\[[^\]]+\]/g, '').replace(/<<[^>]+>>/g, '');
-    if(stripped.trim() === '') continue;
-    out.push(stripped);
-  }
-  const collapsed = [];
-  for(const l of out){
-    if(l === '' && collapsed[collapsed.length-1] === '') continue;
-    collapsed.push(l);
-  }
-  return collapsed;
-}
-function showPanicView(song){
-  const lines = stripToLyricsOnly(song.body);
-  const overlay = document.createElement('div');
-  overlay.className = 'panicView';
-  overlay.innerHTML = `<div class="ptitle">${escapeHtml(song.title)}</div>` +
-    lines.map(l => l === '' ? '<div class="pspacer"></div>' : `<div class="pline">${escapeHtml(l)}</div>`).join('') +
-    `<div class="phint">Tap anywhere to return</div>`;
   overlay.addEventListener('click', () => overlay.remove());
   document.body.appendChild(overlay);
 }
@@ -1516,6 +1849,43 @@ function showUpdateBar(reg){
 }
 
 /* ---------- boot ---------- */
+try{ history.replaceState({view:'library'}, ''); }catch(e){}
+window.addEventListener('popstate', (e) => {
+  const st = e.state || {view:'library'};
+  suppressPush = true;
+  go(st.view || 'library', st.id, st);
+  suppressPush = false;
+});
+// Keep the CSS fullscreen class in sync when the user exits via system UI/Esc.
+document.addEventListener('fullscreenchange', () => {
+  if(!document.fullscreenElement){
+    const st = document.querySelector('.stage.fs');
+    if(st){
+      st.classList.remove('fs');
+      const b = document.getElementById('btnFS');
+      if(b) b.classList.remove('active');
+    }
+  }
+});
+// Thin scroll-position thumb for the library list — appears while scrolling,
+// fades out, so you always know where you are in a long song list.
+const scrollThumb = document.createElement('div');
+scrollThumb.className = 'scrollThumb';
+document.body.appendChild(scrollThumb);
+let thumbFade = null;
+window.addEventListener('scroll', () => {
+  if(route.view !== 'library' && route.view !== 'reorder') return;
+  const doc = document.documentElement;
+  const max = doc.scrollHeight - doc.clientHeight;
+  if(max <= 0) return;
+  const h = Math.max(36, doc.clientHeight * doc.clientHeight / doc.scrollHeight);
+  scrollThumb.style.height = h + 'px';
+  scrollThumb.style.top = (doc.scrollTop / max * (doc.clientHeight - h)) + 'px';
+  scrollThumb.classList.add('show');
+  clearTimeout(thumbFade);
+  thumbFade = setTimeout(() => scrollThumb.classList.remove('show'), 700);
+}, {passive:true});
+
 render();
 initServiceWorker();
 </script>

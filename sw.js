@@ -1,12 +1,13 @@
 // Bump this string on every deploy — it's the only thing that makes the
 // "update available" prompt fire. Same content with the same name here means
 // clients never hear about the change.
-const CACHE_NAME = 'stagebook-v1';
+const CACHE_NAME = 'stagebook-v2';
 
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
+  './notice.json',
   './kaaktaal-badge-192.png',
   './kaaktaal-badge-512.png',
   './kaaktaal-apple-touch-icon.png',
@@ -30,8 +31,23 @@ self.addEventListener('activate', (event) => {
 
 // Cache-first: the app must keep working with zero connectivity on stage.
 // Anything fetched successfully over the network is stashed for next time too.
+// Exception: notice.json is network-first (falling back to cache) — it's the
+// band-notice banner, which must pick up edits without a full redeploy.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.pathname.endsWith('/notice.json')) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;

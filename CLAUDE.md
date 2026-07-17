@@ -151,10 +151,13 @@ photos/docs, which depends on this exact syntax staying stable).
 
 ## What's NOT built yet — this is the actual work
 
-1. **Hosting**: a GitHub repo, deployed to GitHub Pages, so there's a stable URL for "Add to Home
-   Screen" to produce a real installable icon (this also fixes reliable auto-update, which a
-   locally-saved HTML file can't do on its own). PWA conversion, icons, and asset extraction are
-   done — this is the last step, and it's the person's call when to actually create/push the repo.
+1. **Hosting**: done — live on GitHub Pages, deployed from `master` / root. Repo has a `.nojekyll`
+   file at the root: without it, GitHub Pages runs everything through Jekyll by default (even a
+   plain static site), which tried to render `CLAUDE.md` as a page and once failed outright on a
+   transient GitHub API 503 during metadata lookup — Pages does **not** auto-retry a failed build,
+   so it can sit silently 404ing indefinitely until the next push. If Pages ever looks stuck again,
+   check the repo's Actions tab for a failed "pages build and deployment" run before assuming it's
+   just slow.
 
 ## Real song content stays out of the repo — decided, don't revisit silently
 

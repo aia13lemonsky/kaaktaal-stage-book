@@ -6,30 +6,43 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0B0B0C">
-<title>Kaaktaal Stage Book</title>
+<meta name="theme-color" content="#1D1D1B">
+<title>Kaaktaal Playbook</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="kaaktaal-favicon.png">
 <link rel="apple-touch-icon" href="kaaktaal-apple-touch-icon.png">
 <style>
+  /* Neo-Brutalist Dark Mode — softened per direct revision (see CLAUDE.md
+     "Style"). Muted-black canvas; every other element is one of
+     seashell/sky/mustard/emerald/red-passion. Rounded corners, thin 2px
+     borders, no shadows. */
   :root{
-    --bg: #0B0B0C;
-    --surface: #17161A;
-    --surface-2: #1F1E22;
-    --line: #2A2830;
-    --ink: #F2EFE9;
-    --ink-dim: #9C9893;
-    --muted: #6F6B67;
-    --amber: #E8A33D;
-    --amber-dim: #6B4E22;
-    --red: #E30613;
-    --red-dim: #5C0A0F;
-    --chord: #F0DE8A;
-    --blue: #58B4E0;
-    --green: #6FBF8B;
-    --danger: #C1544A;
-    --radius: 14px;
-    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --bg: #1D1D1B;
+    --white: #EAE4DA;      /* Seashell — primary text, borders, resting icons */
+    --silver: #9ED6DF;     /* Sky — secondary structural lines, inactive/disabled */
+    --yellow: #EAC119;     /* Mustard Yellow — primary actions, chords, key data viz */
+    --cyan: #329C64;       /* Emerald Green — secondary nav, active/selected states */
+    --magenta: #C63F3E;    /* Red Passion — destructive actions, alerts, banner */
+
+    /* Role aliases (values only reference the 5 colors above via rgba tints
+       for neutral structure — never a 6th hue): */
+    --ink: var(--white);
+    --ink-dim: var(--silver);
+    --muted: rgba(158,214,223,0.55);
+    --surface: rgba(158,214,223,0.06);
+    --surface-2: rgba(158,214,223,0.13);
+    --line: rgba(158,214,223,0.3);
+    --danger: var(--magenta);
+
+    /* 10%-opacity resting tints for buttons/shapes (brief: no grey/black
+       fill at rest — a jarring 100% solid takes over on press instead). */
+    --yellow-10: rgba(234,193,25,0.1);
+    --cyan-10: rgba(50,156,100,0.1);
+    --magenta-10: rgba(198,63,62,0.1);
+
+    --radius: 15px;
+    --border-w: 2px;
+    --font-display: 'Roboto Slab', Rockwell, 'Bookman Old Style', 'American Typewriter', Georgia, serif;
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-chord: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', monospace;
   }
@@ -53,57 +66,67 @@
     background:linear-gradient(var(--bg) 75%, transparent);
   }
   .topbar h1{
-    font-family:var(--font-display); font-weight:700; font-size:21px; margin:0; letter-spacing:0.2px;
+    font-family:var(--font-display); font-weight:800; font-size:21px; margin:0; letter-spacing:0.4px;
+    text-transform:uppercase;
   }
-  .brandmark{ height:28px; width:auto; display:block; }
+  .brandmark{ height:38px; width:auto; display:block; }
   .iconbtn{
-    width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-    background:var(--surface); color:var(--ink-dim); font-size:18px; flex-shrink:0;
+    width:40px; height:40px; border-radius:var(--radius); display:flex; align-items:center; justify-content:center;
+    background:transparent; color:var(--white); font-size:18px; flex-shrink:0;
+    border:2px solid var(--white);
   }
-  .iconbtn.active{ background:var(--amber); color:#1B1204; }
-  .iconbtn:active{ background:var(--surface-2); }
-  .iconbtn.back{ background:var(--amber); color:#1B1204; font-weight:700; font-size:20px; }
-  .iconbtn.back:active{ background:var(--amber-dim); }
+  .iconbtn.active{ background:var(--yellow); color:#000; border-color:var(--yellow); }
+  .iconbtn:active{ background:var(--white); color:#000; }
+  .iconbtn.back{ background:var(--yellow); color:#000; font-weight:800; font-size:20px; border:var(--border-w) solid var(--white); }
+  .iconbtn.back:active{ background:var(--white); }
   .spacer{ flex:1; }
 
   /* ---------- library ---------- */
   .search{
-    margin:0 14px 8px; padding:11px 14px; border-radius:12px; background:var(--surface);
-    border:1px solid var(--line); color:var(--ink); font-size:16px; width:calc(100% - 28px);
+    margin:0 14px 24px; padding:11px 14px; border-radius:var(--radius); background:transparent;
+    border:var(--border-w) solid var(--white); color:var(--ink); font-size:16px; width:calc(100% - 28px);
+    font-family:var(--font-chord);
   }
   .search::placeholder{ color:var(--muted); }
-  .songlist{ padding:4px 14px 110px; display:flex; flex-direction:column; gap:7px; }
+  .songlist{ padding:4px 14px 110px; display:flex; flex-direction:column; gap:10px; }
   .songrow{
-    display:flex; align-items:center; gap:11px; padding:11px 14px; border-radius:12px;
-    background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; gap:11px; padding:11px 14px; border-radius:var(--radius);
+    background:var(--surface); border:2px solid var(--silver);
   }
-  .songrow.selected{ border-color:var(--amber); background:rgba(232,163,61,0.08); }
+  /* "selected" (multi-select) is a cyan state, distinct from yellow "you can press this" */
+  .songrow.selected{ border-color:var(--cyan); background:var(--cyan-10); }
   .checkbox{
-    width:22px; height:22px; border-radius:50%; border:2px solid var(--muted); flex-shrink:0;
+    width:22px; height:22px; border-radius:var(--radius); border:2px solid var(--silver); flex-shrink:0;
     display:flex; align-items:center; justify-content:center; font-size:13px;
   }
-  .checkbox.checked{ background:var(--amber); border-color:var(--amber); color:#1B1204; }
+  .checkbox.checked{ background:var(--cyan); border-color:var(--cyan); color:#000; }
   .songrow .meta{ flex:1; min-width:0; }
   .songrow .title{ font-size:17px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .songrow .sub{ font-size:12.5px; color:var(--ink-dim); margin-top:2px; }
-  .songrow .sub .ver{ color:var(--blue); }
+  .ver{ font-family:var(--font-chord); font-weight:700; }
+  .songrow .sub .ver{ color:var(--silver); }
   .songrow .key{
-    font-family:var(--font-chord); font-weight:700; color:var(--red); font-size:13px;
-    background:rgba(255,100,89,0.12); padding:4px 8px; border-radius:8px; flex-shrink:0;
+    font-family:var(--font-chord); font-weight:700; color:var(--yellow); font-size:13px;
+    background:var(--yellow-10); padding:4px 8px; border-radius:var(--radius); flex-shrink:0;
   }
   .empty{ text-align:center; color:var(--muted); padding:60px 24px; line-height:1.6; }
+  .empty .emptyCrow{ width:60px; height:60px; opacity:0.32; display:block; margin:0 auto 14px; }
   .fab{
     position:fixed; right:20px; bottom:calc(20px + env(safe-area-inset-bottom));
-    width:58px; height:58px; border-radius:50%; background:var(--amber); color:#1B1204;
+    width:58px; height:58px; border-radius:var(--radius); background:var(--yellow); color:#000;
     font-size:28px; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 20px rgba(0,0,0,0.4); z-index:30; max-width:640px;
+    border:var(--border-w) solid var(--white);
+    z-index:30; max-width:640px;
   }
-  .fab:active{ transform:scale(0.96); }
-  .count{ text-align:center; color:var(--muted); font-size:12px; padding:6px 0 2px; }
+  /* quick squash on press, spring-back overshoot on release — a plucked
+     string, not a flat Material dim */
+  .fab{ transition:transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .fab:active{ transform:scale(0.9); transition:transform 70ms ease-out; }
+  .count{ text-align:center; color:var(--muted); font-size:11.5px; padding:6px 0 2px; text-transform:uppercase; letter-spacing:0.6px; }
 
   .selectbar{
     position:fixed; left:0; right:0; bottom:0; z-index:35; background:var(--surface-2);
-    border-top:1px solid var(--line); padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top:2px solid var(--line); padding:12px 16px calc(12px + env(safe-area-inset-bottom));
     display:flex; gap:10px; max-width:640px; margin:0 auto;
   }
 
@@ -111,115 +134,173 @@
   .editor{ padding:8px 16px 100px; display:flex; flex-direction:column; gap:14px; }
   .field label{ display:block; font-size:12px; color:var(--ink-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.6px; }
   .field input, .field textarea{
-    width:100%; background:var(--surface); border:1px solid var(--line); border-radius:10px;
-    padding:12px 14px; font-size:16px; color:var(--ink);
+    width:100%; background:transparent; border:2px solid var(--silver); border-radius:var(--radius);
+    padding:12px 14px; font-size:16px; color:var(--ink); font-family:var(--font-chord);
   }
+  .field input:focus, .field textarea:focus{ border-color:var(--white); outline:none; }
   .row3{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; }
   .editor textarea{ min-height:280px; font-family:var(--font-chord); font-size:15px; line-height:1.6; resize:vertical; }
-  .help{ font-size:12.5px; color:var(--muted); line-height:1.7; background:var(--surface); border:1px dashed var(--line); border-radius:10px; padding:10px 12px; }
-  .help .red{ color:var(--chord); font-weight:600; }
-  .help .blue{ color:var(--blue); font-weight:600; }
-  .help .amber{ color:var(--amber); font-weight:600; }
+  .help{ font-size:12.5px; color:var(--muted); line-height:1.7; background:transparent; border:2px dashed var(--silver); border-radius:var(--radius); padding:10px 12px; font-family:var(--font-chord); }
+  .help .red{ color:var(--yellow); font-weight:600; }
+  .help .blue{ color:var(--cyan); font-weight:600; }
+  .help .amber{ color:var(--yellow); font-weight:600; }
   .versionline{ font-size:12px; color:var(--ink-dim); }
-  .versionline .ver{ color:var(--blue); font-weight:600; }
+  .versionline .ver{ color:var(--silver); font-weight:600; }
   .btnrow{ display:flex; gap:10px; margin-top:4px; }
-  .btn{ flex:1; padding:14px; border-radius:12px; font-size:15px; font-weight:600; text-align:center; }
-  .btn.primary{ background:var(--amber); color:#1B1204; }
-  .btn.ghost{ background:var(--surface); border:1px solid var(--line); color:var(--ink); }
-  .btn.blue{ background:rgba(88,180,224,0.15); color:var(--blue); border:1px solid rgba(88,180,224,0.35); }
-  .btn.danger{ background:transparent; color:var(--danger); border:1px solid rgba(193,84,74,0.4); flex:none; padding:14px 18px; }
+  .btn{ flex:1; padding:14px; border-radius:var(--radius); font-family:var(--font-display); font-size:15px; font-weight:800; text-align:center; text-transform:uppercase; letter-spacing:0.5px; border:var(--border-w) solid var(--white); background:transparent; color:var(--white); }
+  .btn.primary{ background:var(--yellow-10); border-color:var(--yellow); color:var(--yellow); }
+  .btn.primary:active{ background:var(--yellow); color:#000; }
+  .btn.ghost{ background:transparent; border:var(--border-w) solid var(--silver); color:var(--ink); }
+  .btn.blue{ background:var(--cyan-10); border:var(--border-w) solid var(--cyan); color:var(--cyan); }
+  .btn.blue:active{ background:var(--cyan); color:#000; }
+  .btn.danger{ background:transparent; color:var(--magenta); border:var(--border-w) solid var(--magenta); flex:none; padding:14px 18px; }
+  .btn.danger:active{ background:var(--magenta); color:#000; }
   .smallbtn{
-    width:32px; height:32px; border-radius:8px; background:var(--surface-2); color:var(--ink-dim);
-    font-size:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    width:32px; height:32px; border-radius:var(--radius); background:transparent; color:var(--white);
+    font-family:var(--font-display); font-weight:700; font-size:14px; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; border:2px solid var(--white);
   }
+  .smallbtn:active{ background:var(--white); color:#000; }
   .smallbtn:disabled{ opacity:0.3; }
-  .smallbtn.danger{ color:var(--danger); }
+  .smallbtn.danger{ color:var(--magenta); border-color:var(--magenta); }
+  .smallbtn.danger:active{ background:var(--magenta); color:#000; }
   .setpos{
-    font-size:12px; color:var(--blue); background:rgba(88,180,224,0.12); padding:3px 9px;
-    border-radius:12px; flex-shrink:0; white-space:nowrap;
+    font-size:12px; color:var(--cyan); background:var(--cyan-10); padding:3px 9px;
+    border-radius:var(--radius); flex-shrink:0; white-space:nowrap;
   }
 
   /* ---------- performance view ---------- */
   .stage{ display:flex; flex-direction:column; height:100vh; }
   .stagehead{
     display:flex; align-items:center; gap:10px; padding:14px 14px 10px;
-    border-bottom:1px solid var(--line); flex-shrink:0;
+    border-bottom:2px solid var(--line); flex-shrink:0;
   }
   .stagehead .titles{ flex:1; min-width:0; }
   .stagehead .t1{ font-family:var(--font-display); font-size:19px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .stagehead .t2{ font-size:12px; color:var(--ink-dim); }
-  .stagehead .t2 .ver{ color:var(--blue); }
+  .stagehead .t2 .ver{ color:var(--silver); }
   .progressStrip{ height:4px; background:var(--line); flex-shrink:0; }
-  .progressStrip .fill{ height:100%; background:var(--amber); transition:width .2s; }
+  .progressStrip .fill{ height:100%; background:var(--cyan); transition:width .2s; }
   .ctrlbar{
-    display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:2px solid var(--line);
     flex-shrink:0; overflow-x:auto;
   }
   .pill{
-    display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line);
-    border-radius:20px; padding:6px 6px 6px 12px; font-size:13px; color:var(--ink-dim); flex-shrink:0;
+    display:flex; align-items:center; gap:6px; background:transparent; border:2px solid var(--white);
+    border-radius:var(--radius); padding:6px 6px 6px 12px; font-size:13px; color:var(--ink-dim); flex-shrink:0;
   }
-  .pill button{ width:26px; height:26px; border-radius:50%; background:var(--surface-2); color:var(--ink); font-size:15px; display:flex; align-items:center; justify-content:center; }
-  .pill .val{ min-width:34px; text-align:center; color:var(--ink); font-weight:600; font-family:var(--font-chord); }
+  .pill button{ width:26px; height:26px; border-radius:var(--radius); background:transparent; border:2px solid var(--white); color:var(--ink); font-size:15px; display:flex; align-items:center; justify-content:center; }
+  .pill button:active{ background:var(--white); color:#000; }
+  .pill .val{ min-width:34px; text-align:center; color:var(--ink); font-weight:700; font-family:var(--font-chord); }
   .pick-btn{ width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
   .pick-btn svg{ width:26px; height:26px; }
   .speedwrap{ display:flex; align-items:center; gap:8px; flex:1; min-width:110px; }
-  .speedwrap input[type=range]{ flex:1; accent-color:var(--amber); }
+  .speedwrap input[type=range]{ flex:1; accent-color:var(--yellow); }
+
+  /* Thin-bordered track, small rounded mustard thumb — same geometry
+     everywhere a range input appears. */
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; height:24px; background:transparent; cursor:pointer; margin:0;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px; background:var(--surface-2); border:1px solid var(--silver); border-radius:999px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:16px; height:16px; margin-top:-6px;
+    background:var(--yellow); border:2px solid var(--bg); border-radius:50%; cursor:pointer;
+  }
+  input[type=range]::-moz-range-track{
+    height:4px; background:var(--surface-2); border:1px solid var(--silver); border-radius:999px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px; background:var(--yellow); border:2px solid var(--bg); border-radius:50%; cursor:pointer;
+  }
+  input[type=range]:disabled{ opacity:0.3; }
 
   .subrow{
-    display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:2px solid var(--line);
     flex-shrink:0;
   }
   .subrow label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; flex-shrink:0; }
-  .subrow input[type=range]{ flex:1; accent-color:var(--amber); touch-action:none; }
+  .subrow input[type=range]{ flex:1; accent-color:var(--yellow); touch-action:none; }
   .subrow .speedval{ min-width:64px; text-align:right; font-family:var(--font-chord); color:var(--ink); font-size:12.5px; flex-shrink:0; }
 
   .metroRow{
-    display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:2px solid var(--line);
     flex-shrink:0;
   }
   .metroDots{ display:flex; gap:8px; flex-shrink:0; }
-  .metroDot{ width:15px; height:15px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); transition:background .06s, transform .06s; }
-  .metroDot.on{ background:var(--amber); border-color:var(--amber); transform:scale(1.2); }
-  .metroDot.accent.on{ background:var(--red); border-color:var(--red); }
+  .metroDot{ width:15px; height:15px; border-radius:var(--radius); background:transparent; border:2px solid var(--silver); transition:background .06s, transform .06s; }
+  .metroDot.on{ background:var(--yellow); border-color:var(--yellow); transform:scale(1.2); }
+  .metroDot.accent.on{ background:var(--magenta); border-color:var(--magenta); }
   .metroLabel{ font-size:12px; color:var(--ink-dim); flex:1; }
   .metroLabel .dim{ color:var(--muted); }
   .tapbtn{
-    height:32px; padding:0 12px; border-radius:16px; background:var(--surface-2); color:var(--amber);
-    font-size:12px; font-weight:700; letter-spacing:0.4px; flex-shrink:0;
+    height:32px; padding:0 12px; border-radius:var(--radius); background:transparent; color:var(--yellow);
+    font-family:var(--font-display); font-size:12px; font-weight:800; letter-spacing:0.4px; flex-shrink:0;
+    border:2px solid var(--yellow); text-transform:uppercase;
   }
-  .tapbtn:active{ background:var(--amber); color:#1B1204; }
+  .tapbtn:active{ background:var(--yellow); color:#000; }
+  .tapbtn:disabled{ opacity:0.35; }
 
-  .lyricsWrap{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px 40vh; }
+  .refRow{
+    display:flex; flex-direction:column; gap:6px; padding:8px 14px; border-bottom:2px solid var(--line);
+    flex-shrink:0;
+  }
+  .refRow .refSeekRow{ display:flex; align-items:center; gap:8px; }
+  .refRow input[type=range]{ flex:1; accent-color:var(--yellow); }
+  .refTime{ font-family:var(--font-chord); font-size:11.5px; color:var(--ink-dim); min-width:34px; flex-shrink:0; }
+  .refLoopControls{ display:flex; align-items:center; gap:8px; }
+  .refLoopLabel{ font-size:11.5px; color:var(--muted); flex:1; text-align:center; }
+  #refLoopToggle.active{ background:var(--cyan); color:#000; }
+
+  .lyricsArea{ flex:1; min-height:0; display:flex; }
+  .scrollProgress{ width:4px; flex-shrink:0; background:var(--line); position:relative; }
+  .scrollProgress .fill{ position:absolute; top:0; left:0; right:0; height:0%; background:var(--yellow); }
+  .lyricsWrap{ flex:1; min-width:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px 40vh; position:relative; z-index:2; }
+  .crowWatermark{
+    position:fixed; right:-10px; bottom:calc(4vh + env(safe-area-inset-bottom));
+    width:46vw; max-width:280px; opacity:0.2; pointer-events:none; z-index:1;
+    transition:opacity 300ms ease;
+  }
+  /* the one real wait in the app: a reference track loading. A brief settle
+     pulse on the mark itself stands in for the "wing flap" idea in the brief
+     — there's no literal wing shape in this mark to animate. */
+  @keyframes crowPulse{ 0%,100%{ opacity:0.2; transform:scale(1); } 50%{ opacity:0.32; transform:scale(1.03); } }
+  .crowWatermark.pulse{ animation:crowPulse 900ms ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce){
+    .crowWatermark.pulse{ animation:none; opacity:0.28; }
+  }
   .line{ margin-bottom:22px; }
   .seg{ display:inline-block; position:relative; padding-top:1.55em; white-space:pre; }
   .seg .chord{
     position:absolute; top:0; left:0; font-family:var(--font-chord); font-weight:700;
-    color:var(--chord); font-size:1.15em; letter-spacing:0.2px;
+    color:var(--yellow); font-size:1.15em; letter-spacing:0.2px;
   }
   .seg .lyric{ font-size:1em; color:var(--ink); }
   /* chord with no lyric under it: the hidden lyric copy reserves the chord's
      own width so instrumental chord runs don't pile on top of each other */
   .seg.bare .lyric{ visibility:hidden; font-size:1.15em; }
   .seg.bare{ margin-right:1.2ch; }
-  .seg .note{ font-size:1em; color:var(--blue); font-style:italic; }
+  .seg .note{ font-size:1em; color:var(--cyan); font-style:italic; }
   .noteline{
-    color:var(--blue); font-style:italic; font-size:0.92em; opacity:0.95;
-    padding:4px 0 4px 10px; border-left:2px solid rgba(88,180,224,0.4); margin:6px 0;
+    color:var(--cyan); font-style:italic; font-size:0.92em; opacity:0.95;
+    padding:4px 0 4px 10px; border-left:3px solid var(--cyan); margin:6px 0;
   }
   .sectiontag{
-    display:inline-block; color:var(--muted); font-size:12px; text-transform:uppercase;
-    letter-spacing:1px; margin:14px 0 4px; border-left:3px solid var(--amber-dim); padding-left:8px;
+    display:inline-block; color:var(--silver); font-size:12px; text-transform:uppercase;
+    letter-spacing:1px; margin:14px 0 4px; border-left:3px solid var(--silver); padding-left:8px;
+    font-weight:700;
   }
   .blankline{ height:14px; }
 
   /* chord diagram popover */
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; display:flex; align-items:flex-end; justify-content:center; }
   .diagramCard{
-    background:var(--surface); border-radius:18px 18px 0 0; padding:22px 24px calc(28px + env(safe-area-inset-bottom));
+    background:var(--surface); border-radius:var(--radius); padding:22px 24px calc(28px + env(safe-area-inset-bottom));
     width:100%; max-width:640px; text-align:center;
   }
-  .diagramCard .cname{ font-family:var(--font-chord); font-size:20px; font-weight:700; color:var(--chord); margin-bottom:6px; }
+  .diagramCard .cname{ font-family:var(--font-chord); font-size:20px; font-weight:700; color:var(--yellow); margin-bottom:6px; }
   .diagramCard .cnotes{ font-family:var(--font-chord); font-size:13px; color:var(--ink-dim); letter-spacing:0.5px; margin-bottom:16px; }
   .diagramCard .approx{ font-size:11px; color:var(--muted); margin-top:4px; }
   .diagramRow{ display:flex; gap:16px; overflow-x:auto; justify-content:flex-start; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; }
@@ -229,15 +310,15 @@
 
   /* import results */
   .resultCard{
-    background:var(--surface); border-radius:18px; padding:22px 22px calc(24px + env(safe-area-inset-bottom));
+    background:var(--surface); border-radius:var(--radius); padding:22px 22px calc(24px + env(safe-area-inset-bottom));
     width:calc(100% - 32px); max-width:520px; max-height:75vh; overflow-y:auto;
   }
   .resultCard h2{ font-family:var(--font-display); font-size:19px; margin:0 0 14px; }
-  .resultrow{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .resultrow{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:2px solid var(--line); font-size:14px; }
   .resultrow:last-child{ border-bottom:none; }
-  .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  .dot.new{ background:var(--amber); }
-  .dot.updated{ background:var(--blue); }
+  .dot{ width:9px; height:9px; border-radius:var(--radius); flex-shrink:0; }
+  .dot.new{ background:var(--yellow); }
+  .dot.updated{ background:var(--cyan); }
   .dot.same{ background:var(--muted); }
   .dot.skipped{ background:var(--danger); }
   .resultrow .rtitle{ flex:1; }
@@ -246,48 +327,48 @@
   /* toast */
   .toast{
     position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:var(--surface-2);
-    border:1px solid var(--line); color:var(--ink); padding:10px 18px; border-radius:20px; font-size:13.5px;
+    border:2px solid var(--line); color:var(--ink); padding:10px 18px; border-radius:var(--radius); font-size:13.5px;
     z-index:80; opacity:0; pointer-events:none; transition:opacity .25s; max-width:80%; text-align:center;
   }
   .toast.show{ opacity:1; }
 
   /* update banner */
   .updateBar{
-    position:fixed; left:0; right:0; top:0; z-index:90; background:var(--amber); color:#1B1204;
+    position:fixed; left:0; right:0; top:0; z-index:90; background:var(--yellow); color:#000;
     padding:10px 16px calc(10px); padding-top:calc(10px + env(safe-area-inset-top));
     display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:600;
     transform:translateY(-100%); transition:transform .25s; max-width:640px; margin:0 auto;
   }
   .updateBar.show{ transform:translateY(0); }
   .updateBar button{
-    background:#1B1204; color:var(--amber); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:700; flex-shrink:0;
+    background:#000; color:var(--yellow); padding:6px 12px; border-radius:var(--radius); font-size:13px; font-weight:700; flex-shrink:0;
   }
 
   /* notice banner (repo-hosted notice.json) */
   .notice{
-    margin:0 14px 8px; padding:7px 12px; border-radius:10px; background:#C9556A;
-    display:flex; align-items:center; gap:10px; font-size:13px; color:#fff;
+    margin:0 14px 8px; padding:7px 12px; border-radius:var(--radius); background:var(--magenta);
+    display:flex; align-items:center; gap:10px; font-size:13px; color:var(--white);
   }
   .notice .txt{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
   .notice button{
-    background:rgba(0,0,0,0.28); color:#fff; border-radius:8px; padding:5px 11px;
+    background:rgba(0,0,0,0.28); color:var(--white); border-radius:var(--radius); padding:5px 11px;
     font-size:12px; font-weight:600; flex-shrink:0;
   }
 
   /* color tag picker (personal, per-phone) */
   .colorRow{ display:flex; gap:10px; align-items:center; padding:2px 0; }
   .colorDot{
-    width:26px; height:26px; border-radius:50%; border:2px solid var(--line); flex-shrink:0;
+    width:26px; height:26px; border-radius:var(--radius); border:2px solid var(--line); flex-shrink:0;
     padding:0;
   }
   .colorDot.none{ background:var(--surface-2); position:relative; }
   .colorDot.none::after{ content:'\00d7'; color:var(--muted); font-size:14px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
   .colorDot.sel{ border-color:var(--ink); transform:scale(1.18); }
-  .colorHint{ font-size:11px; color:var(--muted); margin-left:4px; }
+  .colorHint{ font-size:11px; color:var(--muted); margin-left:4px; text-transform:uppercase; letter-spacing:0.6px; }
 
   /* library scroll-position thumb */
   .scrollThumb{
-    position:fixed; right:3px; top:0; width:4px; border-radius:2px; background:var(--amber);
+    position:fixed; right:3px; top:0; width:4px; border-radius:var(--radius); background:var(--yellow);
     opacity:0; transition:opacity .25s; z-index:60; pointer-events:none;
   }
   .scrollThumb.show{ opacity:0.65; }
@@ -295,16 +376,37 @@
   /* full-screen lyric view */
   .fsbtn{
     position:fixed; right:14px; bottom:calc(18px + env(safe-area-inset-bottom));
-    width:46px; height:46px; border-radius:50%; background:var(--surface-2);
-    border:1px solid var(--line); color:var(--ink-dim); font-size:20px; z-index:45;
+    width:46px; height:46px; border-radius:var(--radius); background:var(--surface-2);
+    border:2px solid var(--line); color:var(--ink-dim); font-size:20px; z-index:45;
     display:flex; align-items:center; justify-content:center;
   }
-  .fsbtn.active{ background:var(--amber); color:#1B1204; border-color:var(--amber); }
+  .fsbtn.active{ background:var(--yellow); color:#000; border-color:var(--yellow); }
   .stage.fs .stagehead, .stage.fs .ctrlbar, .stage.fs .subrow, .stage.fs .progressStrip{ display:none; }
 
   .edgeFlash{
     position:fixed; inset:0; z-index:85; pointer-events:none; opacity:0;
     box-shadow: inset 0 0 0 0 rgba(0,0,0,0);
+  }
+
+  /* Fine grain/grit wash — a single fixed noise layer sitting above the
+     whole app and blended (not painted) into whatever's beneath it, so the
+     muted-black canvas and every card/button fill all pick up the same
+     subtle texture without touching each surface individually. Inline SVG
+     feTurbulence, no image asset/network call. */
+  .grain{
+    position:fixed; inset:0; z-index:95; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:160px 160px;
+    opacity:0.05;
+    mix-blend-mode:overlay;
+  }
+
+  /* screen transitions: fade + slight rise, ~150ms — see render()/renderNow() */
+  @keyframes viewRiseIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+  ::view-transition-new(root){ animation:viewRiseIn 150ms ease-out; }
+  ::view-transition-old(root){ animation-duration:100ms; }
+  @media (prefers-reduced-motion: reduce){
+    ::view-transition-new(root), ::view-transition-old(root){ animation:none; }
   }
 
   .hidden{ display:none !important; }
@@ -321,6 +423,7 @@
   <button id="btnUpdateNow">Refresh</button>
 </div>
 <div class="edgeFlash" id="edgeFlash"></div>
+<div class="grain" id="grain"></div>
 
 <script>
 /* ============================================================
@@ -371,7 +474,7 @@ function songPref(id){
   if(!prefs.songs[id]) prefs.songs[id] = {};
   return prefs.songs[id];
 }
-const TAG_COLORS = ['', '#E35D6A', '#E8A33D', '#6FBF8B', '#58B4E0', '#B58CD9'];
+const TAG_COLORS = ['', '#EAC119', '#808BC5', '#EAA7C7', '#9ED6DF', '#245E55', '#ED773C', '#C63F3E'];
 
 function orderedSongs(){
   const list = [...songs];
@@ -473,6 +576,46 @@ This whole line is a note to the band, not sung
   return demo;
 }
 function newId(){ return 's-' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+// Hand-drawn brutalist icon set: bold 2.5px strokes, square caps/joins (no
+// rounding, matches the 0-radius rule), currentColor everywhere so a button's
+// own resting/active/pressed color drives the icon with zero extra JS.
+const ICON_STROKE = {
+  back: 'M20 12H4M4 12l7-7M4 12l7 7',
+  menu: 'M4 6h16M4 12h12M4 18h16',
+  check: 'M4 13l5 5L20 6',
+  download: 'M12 3v12M7 10l5 5 5-5M4 20h16',
+  upload: 'M12 15V3M7 8l5-5 5 5M4 20h16',
+  edit: 'M15 4l5 5-11 11H4v-5z',
+  close: 'M5 5l14 14M19 5L5 19',
+  chevronUp: 'M5 15l7-7 7 7',
+  chevronDown: 'M5 9l7 7 7-7',
+  undo: 'M4 4v6h6M4.5 15a8 8 0 1 0 2-9.5L4 10',
+  music: 'M9 18V5l10-2v13M9 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  metronome: 'M9 21h6L12 3zM10.5 8l2.5 10',
+  speaker: 'M4 9v6h4l5 5V4L8 9H4zM17 8a5 5 0 0 1 0 8',
+  mute: 'M4 9v6h4l5 5V4L8 9H4zM16 9l5 5M21 9l-5 5',
+  expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  pause: 'M9 5v14M15 5v14',
+};
+const ICON_FILL = {
+  flash: 'M13 2 4 14h6l-1 8 9-12h-6z',
+  kebab: '<circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>',
+  star: 'M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z',
+  play: 'M8 5v14l11-7-11-7z',
+};
+function icon(name, size=20){
+  if(ICON_FILL[name]){
+    const body = ICON_FILL[name].startsWith('<') ? ICON_FILL[name] : `<path d="${ICON_FILL[name]}"/>`;
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${body}</svg>`;
+  }
+  const d = ICON_STROKE[name] || '';
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="${d}"/></svg>`;
+}
 function timeAgo(iso){
   if(!iso) return '';
   const then = new Date(iso).getTime();
@@ -644,28 +787,28 @@ function chordShapeSVG(shape){
   const {frets, base} = shape;
   const W=150, H=180, left=20, top=26, stringGap=(W-2*left)/5, fretGap=(H-top-20)/4;
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  svg += `<rect x="${left}" y="${top}" width="${W-2*left}" height="${base===1?4:1.5}" fill="${base===1?'#F2EFE9':'#6F6B67'}"/>`;
+  svg += `<rect x="${left}" y="${top}" width="${W-2*left}" height="${base===1?4:2}" fill="${base===1?'#EAE4DA':'#9ED6DF'}"/>`;
   for(let s=0;s<6;s++){
     const x = left + s*stringGap;
-    svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top+4*fretGap}" stroke="#6F6B67" stroke-width="1.2"/>`;
+    svg += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top+4*fretGap}" stroke="#9ED6DF" stroke-width="2"/>`;
   }
   for(let fr=1;fr<=4;fr++){
     const y = top + fr*fretGap;
-    svg += `<line x1="${left}" y1="${y}" x2="${W-left}" y2="${y}" stroke="#3A3740" stroke-width="1"/>`;
+    svg += `<line x1="${left}" y1="${y}" x2="${W-left}" y2="${y}" stroke="#9ED6DF" stroke-width="2" opacity="0.5"/>`;
   }
   if(base>1){
-    svg += `<text x="${left-14}" y="${top+fretGap*0.75}" font-size="11" fill="#9C9893" font-family="ui-monospace,monospace">${base}fr</text>`;
+    svg += `<text x="${left-14}" y="${top+fretGap*0.75}" font-size="11" fill="#9ED6DF" font-family="ui-monospace,monospace" font-weight="700">${base}fr</text>`;
   }
   frets.forEach((fr, s) => {
     const x = left + s*stringGap;
     if(fr === null){
-      svg += `<text x="${x}" y="${top-9}" font-size="12" fill="#9C9893" text-anchor="middle">×</text>`;
+      svg += `<text x="${x}" y="${top-9}" font-size="14" fill="#C63F3E" font-weight="700" text-anchor="middle">×</text>`;
     } else if(fr === 0){
-      svg += `<circle cx="${x}" cy="${top-11}" r="4.5" fill="none" stroke="#F2EFE9" stroke-width="1.4"/>`;
+      svg += `<circle cx="${x}" cy="${top-11}" r="4.5" fill="none" stroke="#EAE4DA" stroke-width="2.5"/>`;
     } else {
       const rel = fr - base + 1;
       const y = top + (rel-0.5)*fretGap;
-      svg += `<circle cx="${x}" cy="${y}" r="7" fill="#E30613"/>`;
+      svg += `<circle cx="${x}" cy="${y}" r="7" fill="var(--yellow)"/>`;
     }
   });
   svg += `</svg>`;
@@ -692,6 +835,11 @@ function chordPopupHTML(chordName){
    ============================================================ */
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Empty states get the band's own mark instead of plain gray text — low-stakes
+// screens, per the design brief, get the personality budget the lyrics view doesn't.
+function emptyStateHTML(message){
+  return `<div class="empty"><img src="kaaktaal-crow-mark.png" class="emptyCrow" alt=""><div>${message}</div></div>`;
 }
 function nextMarkerIndex(line, from){
   const b = line.indexOf('[', from);
@@ -723,13 +871,14 @@ function tokenizeLine(line){
 }
 // Section-type color coding for the {Section} label border — glanceable
 // structure without extra text. Pre-chorus must be tested before chorus.
+// Collapsed from a per-type rainbow to white/silver only — the strict
+// 5-color brutalist system has no room for a 5th/6th hue here. Chorus (the
+// section a performer most needs to spot fast) stays brightest (white);
+// everything else (verse/bridge/pre-chorus/other) is silver.
 function sectionColor(name){
   const n = name.toLowerCase();
-  if(/pre[\s-]?chorus/.test(n)) return '#F08A4B';
-  if(/chorus/.test(n)) return '#E35D6A';
-  if(/verse/.test(n)) return '#6FBF8B';
-  if(/bridge/.test(n)) return '#58B4E0';
-  return '#F0DE8A';
+  if(/chorus/.test(n)) return '#EAE4DA';
+  return '#9ED6DF';
 }
 function renderBody(body, semitoneShift){
   const lines = body.split('\n');
@@ -780,7 +929,7 @@ async function shareOrDownload(songsToSend, filename){
   try{
     const file = new File([blob], filename, {type:'application/json'});
     if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:'Stage Book songs'});
+      await navigator.share({files:[file], title:'Playbook songs'});
       return;
     }
   }catch(e){ /* fall through to download */ }
@@ -827,7 +976,7 @@ function showImportResults(results){
       <div class="rtitle">${escapeHtml(r.title||'Untitled')}</div>
       <div class="rdetail">${escapeHtml(r.detail)}</div>
     </div>`).join('');
-  overlay.innerHTML = `<div class="resultCard"><h2>Update summary</h2>${rows || '<div class="empty">Nothing to import.</div>'}
+  overlay.innerHTML = `<div class="resultCard"><h2>Update summary</h2>${rows || emptyStateHTML('Nothing to import.')}
     <div class="btnrow" style="margin-top:16px;"><button class="btn primary" id="closeResults">Done</button></div></div>`;
   document.body.appendChild(overlay);
   overlay.querySelector('#closeResults').addEventListener('click', () => { overlay.remove(); renderLibrary(); });
@@ -870,7 +1019,7 @@ function go(view, id, extra){
   }
   render();
 }
-function render(){
+function renderNow(){
   if(route.view === 'library') return renderLibrary();
   if(route.view === 'editor') return renderEditor(route.id);
   if(route.view === 'perform') return renderPerform(route.id);
@@ -878,15 +1027,37 @@ function render(){
   if(route.view === 'setlistDetail') return renderSetlistDetail(route.id);
   if(route.view === 'reorder') return renderReorder();
 }
+// Screen transitions: a native View Transition (fade+rise, see CSS) when the
+// browser supports it, otherwise an instant swap — never a hand-rolled
+// animation that could add latency. The actual render() call is synchronous
+// either way, so the app is interactive immediately; the transition is a
+// purely visual overlay on top, and reduced-motion is handled entirely in
+// CSS (::view-transition-* animation:none), so there's nothing to branch on
+// here for that.
+function render(){
+  if(document.startViewTransition){
+    document.startViewTransition(() => renderNow());
+  } else {
+    renderNow();
+  }
+}
 
 /* ---------- LIBRARY ---------- */
+// Tagged cards get a 25%-opacity tint of their tag color as background (plus
+// a matching heavy border + hard shadow); untagged cards stay the plain grey
+// surface. Selection state (cyan) always wins over a tag's own color while
+// picking songs to share, so "this is selected" never gets visually buried.
 function songRowHTML(s){
   const ver = s.version || 1;
   const meta = [s.artist, s.bpm ? s.bpm+' bpm' : '', `<span class="ver">v${ver}</span>${s.updatedAt ? ' · '+timeAgo(s.updatedAt) : ''}`].filter(Boolean).join(' · ');
   const color = (prefs.songs && prefs.songs[s.id] && prefs.songs[s.id].color) || '';
+  const isSelected = selectedIds.has(s.id);
+  const style = (color && !isSelected)
+    ? ` style="background:${hexToRgba(color,0.25)}; border-color:${color}; border-width:var(--border-w);"`
+    : '';
   return `
-  <div class="songrow ${selectedIds.has(s.id)?'selected':''}" data-id="${s.id}"${color ? ` style="border-left:4px solid ${color};"` : ''}>
-    ${selectMode ? `<div class="checkbox ${selectedIds.has(s.id)?'checked':''}">${selectedIds.has(s.id)?'&#10003;':''}</div>` : ''}
+  <div class="songrow ${isSelected?'selected':''}" data-id="${s.id}"${style}>
+    ${selectMode ? `<div class="checkbox ${isSelected?'checked':''}">${isSelected?'&#10003;':''}</div>` : ''}
     <div class="meta">
       <div class="title">${escapeHtml(s.title || 'Untitled')}</div>
       <div class="sub">${meta}</div>
@@ -899,15 +1070,16 @@ function renderLibrary(filter=''){
     <div class="topbar">
       <img class="brandmark" alt="Kaaktaal" src="kaaktaal-wordmark.png">
       <div class="spacer"></div>
-      <button class="iconbtn" id="btnSetlists" title="Setlists">&#9776;</button>
-      <button class="iconbtn ${selectMode?'active':''}" id="btnSelect" title="Select songs to share">&#10003;</button>
-      <button class="iconbtn" id="btnExport" title="Backup all songs">&#8681;</button>
-      <button class="iconbtn" id="btnImport" title="Import / update songs">&#8679;</button>
+      <button class="iconbtn" id="btnSetlists" title="Setlists">${icon('menu')}</button>
+      <button class="iconbtn ${selectMode?'active':''}" id="btnSelect" title="Select songs to share">${icon('check')}</button>
+      <button class="iconbtn" id="btnExport" title="Backup all songs">${icon('download')}</button>
+      <button class="iconbtn" id="btnImport" title="Import / update songs">${icon('upload')}</button>
     </div>
     <div class="notice hidden" id="noticeBar"><span class="txt" id="noticeText"></span><button id="noticeBtn" class="hidden">Open</button></div>
     <input class="search" id="searchBox" placeholder="Search by title, artist, or nickname..." value="${escapeHtml(filter)}">
     <div class="count" id="countLine"></div>
     <div class="songlist" id="songlist"></div>
+    <img src="kaaktaal-crow-mark.png" class="crowWatermark" alt="">
     ${selectMode ? '' : '<button class="fab" id="btnNew">+</button>'}
   `;
   const listEl = app.querySelector('#songlist');
@@ -921,7 +1093,7 @@ function renderLibrary(filter=''){
     countEl.innerHTML = `${songs.length} song${songs.length===1?'':'s'} in your book${selectMode ? ' · tap to select' : ''}`;
     const list = orderedSongs().filter(s => matchesSearch(s, f));
     if(list.length === 0){
-      listEl.innerHTML = `<div class="empty">${songs.length === 0 ? 'No songs yet.<br>Tap + to add your first one.' : 'No matches.'}</div>`;
+      listEl.innerHTML = emptyStateHTML(songs.length === 0 ? 'No songs yet.<br>Tap + to add your first one.' : 'No matches.');
       return;
     }
     listEl.innerHTML = list.map(songRowHTML).join('');
@@ -986,7 +1158,7 @@ function renderReorder(){
   savePrefs();
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn back" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">${icon('back')}</button>
       <h1>Reorder songs</h1>
       <div class="spacer"></div>
     </div>
@@ -998,8 +1170,8 @@ function renderReorder(){
   listEl.innerHTML = list.map((s, i) => `
     <div class="songrow" data-idx="${i}">
       <div class="meta"><div class="title">${i+1}. ${escapeHtml(s.title || 'Untitled')}</div></div>
-      <button class="smallbtn" data-act="up" ${i===0?'disabled':''}>&#8593;</button>
-      <button class="smallbtn" data-act="down" ${i===list.length-1?'disabled':''}>&#8595;</button>
+      <button class="smallbtn" data-act="up" ${i===0?'disabled':''}>${icon('chevronUp',16)}</button>
+      <button class="smallbtn" data-act="down" ${i===list.length-1?'disabled':''}>${icon('chevronDown',16)}</button>
     </div>`).join('');
   listEl.querySelectorAll('.songrow').forEach(row => {
     const idx = Number(row.dataset.idx);
@@ -1070,13 +1242,14 @@ document.getElementById('importFile').addEventListener('change', e => {
 function renderSetlists(){
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn back" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">${icon('back')}</button>
       <h1>Setlists</h1>
       <div class="spacer"></div>
       <button class="iconbtn" id="btnNewSetlist">+</button>
     </div>
     <div class="count">Order songs for a specific gig or rehearsal</div>
     <div class="songlist" id="setlistList"></div>
+    <img src="kaaktaal-crow-mark.png" class="crowWatermark" alt="">
   `;
   app.querySelector('#btnBack').addEventListener('click', () => go('library'));
   app.querySelector('#btnNewSetlist').addEventListener('click', () => {
@@ -1088,16 +1261,21 @@ function renderSetlists(){
   });
   const listEl = app.querySelector('#setlistList');
   if(setlists.length === 0){
-    listEl.innerHTML = `<div class="empty">No setlists yet.<br>Tap + to build one for your next gig.</div>`;
+    listEl.innerHTML = emptyStateHTML('No setlists yet.<br>Tap + to build one for your next gig.');
     return;
   }
-  listEl.innerHTML = setlists.map(sl => `
-    <div class="songrow" data-id="${sl.id}"${sl.color ? ` style="border-left:4px solid ${sl.color};"` : ''}>
+  listEl.innerHTML = setlists.map(sl => {
+    const style = sl.color
+      ? ` style="background:${hexToRgba(sl.color,0.25)}; border-color:${sl.color}; border-width:var(--border-w);"`
+      : '';
+    return `
+    <div class="songrow" data-id="${sl.id}"${style}>
       <div class="meta">
         <div class="title">${escapeHtml(sl.name)}</div>
         <div class="sub">${sl.songIds.length} song${sl.songIds.length===1?'':'s'}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   listEl.querySelectorAll('.songrow').forEach(row => {
     row.addEventListener('click', () => go('setlistDetail', row.dataset.id));
   });
@@ -1122,16 +1300,16 @@ function renderSetlistDetail(id){
     : '';
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn back" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">${icon('back')}</button>
       <h1>${escapeHtml(setlist.name)}</h1>
       <div class="spacer"></div>
-      <button class="iconbtn" id="btnRename" title="Rename">&#9998;</button>
-      <button class="iconbtn" id="btnDeleteSetlist" title="Delete setlist">&times;</button>
+      <button class="iconbtn" id="btnRename" title="Rename">${icon('edit')}</button>
+      <button class="iconbtn" id="btnDeleteSetlist" title="Delete setlist">${icon('close')}</button>
     </div>
     ${lengthLabel ? `<div class="count">${lengthLabel}</div>` : ''}
     <div class="editor" style="padding-top:0;">
       <div class="colorRow" id="slColorRow">${TAG_COLORS.map(c => `<button class="colorDot ${c?'':'none'} ${(setlist.color||'')===c?'sel':''}" data-c="${c}"${c ? ` style="background:${c}"` : ''}></button>`).join('')}<span class="colorHint">color tag</span></div>
-      <button class="btn primary" id="btnStartSet" style="margin-bottom:4px;">&#9654; Start set (${rows.length} song${rows.length===1?'':'s'})</button>
+      <button class="btn primary" id="btnStartSet" style="margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:8px;">${icon('play',16)} Start set (${rows.length} song${rows.length===1?'':'s'})</button>
       <div id="setlistSongs" style="display:flex; flex-direction:column; gap:8px;"></div>
       <button class="btn ghost" id="btnAddSongs">+ Add songs</button>
     </div>
@@ -1165,14 +1343,14 @@ function renderSetlistDetail(id){
 
   const listEl = app.querySelector('#setlistSongs');
   if(rows.length === 0){
-    listEl.innerHTML = `<div class="empty">No songs in this setlist yet.</div>`;
+    listEl.innerHTML = emptyStateHTML('No songs in this setlist yet.');
   } else {
     listEl.innerHTML = rows.map(r => `
       <div class="songrow" data-idx="${r.i}">
         <div class="meta"><div class="title">${r.i+1}. ${escapeHtml(r.title)}</div></div>
         ${r.key ? `<div class="key">${escapeHtml(r.key)}</div>` : ''}
-        <button class="smallbtn" data-act="up" ${r.i===0?'disabled':''}>&#8593;</button>
-        <button class="smallbtn" data-act="down" ${r.i===rows.length-1?'disabled':''}>&#8595;</button>
+        <button class="smallbtn" data-act="up" ${r.i===0?'disabled':''}>${icon('chevronUp',16)}</button>
+        <button class="smallbtn" data-act="down" ${r.i===rows.length-1?'disabled':''}>${icon('chevronDown',16)}</button>
         <button class="smallbtn danger" data-act="remove">&times;</button>
       </div>`).join('');
     listEl.querySelectorAll('.songrow').forEach(row => {
@@ -1204,7 +1382,7 @@ function openAddSongsPicker(setlist, onDone){
       <div class="resultrow" data-id="${s.id}" style="cursor:pointer;">
         <div class="checkbox" data-cb></div>
         <div class="rtitle">${escapeHtml(s.title)}</div>
-      </div>`).join('') || '<div class="empty">All your songs are already in this setlist.</div>'}
+      </div>`).join('') || emptyStateHTML('All your songs are already in this setlist.')}
     </div>
     <div class="btnrow" style="margin-top:16px;">
       <button class="btn ghost" id="cancelPick">Cancel</button>
@@ -1235,15 +1413,15 @@ function renderEditor(id){
   const ver = s.version || 0;
   app.innerHTML = `
     <div class="topbar">
-      <button class="iconbtn back" id="btnBack">&#8592;</button>
+      <button class="iconbtn back" id="btnBack">${icon('back')}</button>
       <h1>Edit Song</h1>
       <div class="spacer"></div>
-      <button class="iconbtn" id="btnShareOne" title="Share this song">&#8593;</button>
+      <button class="iconbtn" id="btnShareOne" title="Share this song">${icon('upload')}</button>
     </div>
     <div class="editor">
       ${ver > 0 ? `<div class="versionline">Currently <span class="ver">v${ver}</span>${s.updatedBy ? ' · last edited by '+escapeHtml(s.updatedBy) : ''}${s.updatedAt ? ' · '+timeAgo(s.updatedAt) : ''}. Saving will bump this to v${ver+1}.</div>` : `<div class="versionline">New song — first save will become v1.</div>`}
       <div class="versionline">ID: <span class="ver" id="idCopy" style="cursor:pointer; text-decoration:underline dotted;" title="Tap to copy">${s.id}</span> <span style="color:var(--muted);">(needed if updating this song from another conversation)</span></div>
-      ${typeof s.prevBody === 'string' && s.prevBody !== s.body ? `<button class="btn blue" id="btnUndo">&#8634; Undo last edit (restore previous text)</button>` : ''}
+      ${typeof s.prevBody === 'string' && s.prevBody !== s.body ? `<button class="btn blue" id="btnUndo" style="display:flex; align-items:center; justify-content:center; gap:8px;">${icon('undo',16)} Undo last edit (restore previous text)</button>` : ''}
       <div class="field"><label>Title</label><input id="fTitle" value="${escapeHtml(s.title)}" placeholder="Song title"></div>
       <div class="field"><label>Artist</label><input id="fArtist" value="${escapeHtml(s.artist||'')}" placeholder="Artist / band"></div>
       <div class="field"><label>Also search as (phonetic spelling, nicknames)</label><input id="fAliases" value="${escapeHtml(s.aliases||'')}" placeholder="e.g. golokdhadha, confusion song"></div>
@@ -1262,8 +1440,8 @@ function renderEditor(id){
         <textarea id="fBody" placeholder="[G]Type lyrics here with [C]chords in brackets">${escapeHtml(s.body||'')}</textarea>
       </div>
       <div class="help">
-        <span class="red">[G]</span> chord right before its syllable — shows in pastel yellow, above the word.<br>
-        <span class="blue">&lt;&lt;softer here&gt;&gt;</span> instruction or note — shows blue, inline or on its own line.<br>
+        <span class="red">[G]</span> chord right before its syllable — shows in bright volt green, above the word.<br>
+        <span class="blue">&lt;&lt;softer here&gt;&gt;</span> instruction or note — shows in indigo, inline or on its own line.<br>
         <span class="amber">{Chorus}</span> section label, on its own line.<br>
         Lyrics with no marker just show in white. Blank lines add spacing.
       </div>
@@ -1392,7 +1570,11 @@ function startAutoscroll(container){
 // Reference-track mode: scroll position is slaved to the audio clock, so the
 // lyrics land exactly at the end when the song ends, and pausing/stuttering
 // audio can never drift out of sync with the scroll.
-function startAudioScroll(container, audioEl){
+// getBounds() is called every frame and returns [rangeStart, rangeEnd] in
+// seconds — normally [0, duration], but while a practice loop is active it's
+// [loopStart, loopEnd] instead, so the lyrics snap back through the same
+// scroll range every repeat, exactly in step with the audio.
+function startAudioScroll(container, audioEl, getBounds){
   stopAutoscroll();
   perf.scrolling = true;
   requestWakeLock();
@@ -1400,12 +1582,20 @@ function startAudioScroll(container, audioEl){
   const distance = Math.max(0, container.scrollHeight - container.clientHeight - startPos);
   const step = () => {
     if(!perf.scrolling) return;
-    if(audioEl.duration && !perf.holdScroll && !audioEl.paused){
-      container.scrollTop = startPos + distance * Math.min(1, audioEl.currentTime / audioEl.duration);
+    if(!perf.holdScroll && !audioEl.paused){
+      const [a, b] = getBounds ? getBounds() : [0, audioEl.duration || 0];
+      const dur = b - a;
+      const frac = dur > 0 ? Math.min(1, Math.max(0, (audioEl.currentTime - a) / dur)) : 0;
+      container.scrollTop = startPos + distance * frac;
     }
     scrollRAF = requestAnimationFrame(step);
   };
   scrollRAF = requestAnimationFrame(step);
+}
+function formatTime(sec){
+  if(!isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
 }
 async function requestWakeLock(){
   try{ if('wakeLock' in navigator){ perf.wakeLock = await navigator.wakeLock.request('screen'); } }catch(e){}
@@ -1435,7 +1625,7 @@ function triggerEdgeFlash(accent){
   if(!el) return;
   el.style.transition = 'none';
   el.style.opacity = '1';
-  el.style.boxShadow = `inset 0 0 0 16px ${accent ? 'var(--red)' : 'var(--amber)'}`;
+  el.style.boxShadow = `inset 0 0 0 16px ${accent ? 'var(--magenta)' : 'var(--yellow)'}`;
   requestAnimationFrame(() => {
     el.style.transition = 'opacity 220ms ease-out, box-shadow 220ms ease-out';
     el.style.opacity = '0';
@@ -1487,14 +1677,14 @@ function renderPerform(id){
   app.innerHTML = `
     <div class="stage">
       <div class="stagehead">
-        <button class="iconbtn back" id="btnBack">&#8592;</button>
+        <button class="iconbtn back" id="btnBack">${icon('back')}</button>
         <div class="titles">
           <div class="t1">${escapeHtml(s.title)}</div>
           <div class="t2">${escapeHtml(s.artist||'')}${s.bpm ? ' · '+s.bpm+' bpm' : ''}${s.capo ? ' · capo '+s.capo : ''} · <span class="ver">v${ver}</span>${s.updatedBy ? ' by '+escapeHtml(s.updatedBy) : ''}</div>
         </div>
         ${inSetlist ? `<div class="setpos">${posLabel}</div>` : ''}
-        <button class="iconbtn" id="btnRefAudio" title="Reference track (long-press to change)">&#9836;</button>
-        <button class="iconbtn" id="btnEdit">&#9998;</button>
+        <button class="iconbtn" id="btnRefAudio" title="Reference track (long-press to change)">${icon('music')}</button>
+        <button class="iconbtn" id="btnEdit">${icon('edit')}</button>
       </div>
       ${inSetlist ? `<div class="progressStrip"><div class="fill" style="width:${((route.setlistIndex+1)/inSetlist.songIds.length*100).toFixed(1)}%"></div></div>` : ''}
       <div class="ctrlbar">
@@ -1509,33 +1699,59 @@ function renderPerform(id){
           <button id="fontUp">A&#43;</button>
         </div>
         <button class="pick-btn iconbtn" id="btnPlay" title="Auto-scroll">
-          <svg viewBox="0 0 24 24" fill="none" id="playIcon"><path d="M8 5v14l11-7-11-7z" fill="#E8A33D"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" id="playIcon"><path d="M8 5v14l11-7-11-7z" fill="#EAC119"/></svg>
         </button>
-        <button class="iconbtn" id="btnMetro" title="Metronome">&#9833;</button>
+        <button class="iconbtn" id="btnMetro" title="Metronome">${icon('metronome')}</button>
       </div>
       <div class="subrow">
         <label>Scroll</label>
         <input type="range" id="speedSlider" min="0.5" max="15" step="0.5" value="${perf.secPerLine}">
         <span class="speedval" id="speedVal">${perf.secPerLine}s/line</span>
-        <button class="smallbtn" id="btnPrefSave" title="Save current speed &amp; key as this song's default">&#9733;</button>
-        <button class="smallbtn" id="btnPrefRevert" title="Back to this song's saved default">&#8634;</button>
+        <button class="smallbtn" id="btnPrefSave" title="Save current speed &amp; key as this song's default">${icon('star',15)}</button>
+        <button class="smallbtn" id="btnPrefRevert" title="Back to this song's saved default">${icon('undo',15)}</button>
       </div>
       <div class="metroRow hidden" id="metroRow">
         <div class="metroDots" id="metroDots"></div>
         <button class="tapbtn" id="btnTapTempo" title="Tap 4+ times to a beat">TAP</button>
         <div class="metroLabel" id="metroLabel"></div>
-        <button class="iconbtn ${metro.flashOn?'active':''}" id="btnMetroFlash" title="Full-screen edge flash">&#9889;</button>
-        <button class="iconbtn" id="btnMetroSound" title="Click sound">${metro.soundOn ? '&#128266;' : '&#128263;'}</button>
+        <button class="iconbtn ${metro.flashOn?'active':''}" id="btnMetroFlash" title="Full-screen edge flash">${icon('flash')}</button>
+        <button class="iconbtn" id="btnMetroSound" title="Click sound">${metro.soundOn ? icon('speaker') : icon('mute')}</button>
       </div>
-      <div class="lyricsWrap" id="lyricsWrap" style="font-size:17px;">
-        ${renderBody(s.body || '', perf.semitone)}
+      <div class="refRow hidden" id="refRow">
+        <div class="refSeekRow">
+          <span class="refTime" id="refTimeCur">0:00</span>
+          <input type="range" id="refSeek" min="0" max="100" step="0.1" value="0">
+          <span class="refTime" id="refTimeDur">0:00</span>
+        </div>
+        <div class="refLoopControls">
+          <button class="smallbtn" id="refSetA" title="Mark loop start at current position">A</button>
+          <span class="refLoopLabel" id="refLoopLabel">Full song</span>
+          <button class="smallbtn" id="refSetB" title="Mark loop end at current position">B</button>
+          <button class="tapbtn" id="refLoopToggle" disabled title="Turn looping on/off">LOOP</button>
+          <button class="smallbtn" id="refManage" title="Change or remove this track">${icon('kebab',15)}</button>
+        </div>
       </div>
-      <button class="fsbtn" id="btnFS" title="Full screen">&#9974;</button>
+      <img src="kaaktaal-crow-mark.png" class="crowWatermark" alt="">
+      <div class="lyricsArea">
+        <div class="scrollProgress"><div class="fill" id="scrollProgressFill"></div></div>
+        <div class="lyricsWrap" id="lyricsWrap" style="font-size:17px;">
+          ${renderBody(s.body || '', perf.semitone)}
+        </div>
+      </div>
+      <button class="fsbtn" id="btnFS" title="Full screen">${icon('expand')}</button>
       <input type="file" id="refAudioFile" accept="audio/*">
     </div>
   `;
 
   const lyricsWrap = app.querySelector('#lyricsWrap');
+  const scrollProgressFill = app.querySelector('#scrollProgressFill');
+  function updateScrollProgress(){
+    const max = lyricsWrap.scrollHeight - lyricsWrap.clientHeight;
+    const frac = max > 0 ? Math.min(1, Math.max(0, lyricsWrap.scrollTop / max)) : 0;
+    scrollProgressFill.style.height = (frac * 100) + '%';
+  }
+  lyricsWrap.addEventListener('scroll', updateScrollProgress, {passive:true});
+  updateScrollProgress();
   const keyVal = app.querySelector('#keyVal');
   const fontVal = app.querySelector('#fontVal');
   const playIcon = app.querySelector('#playIcon');
@@ -1589,12 +1805,12 @@ function renderPerform(id){
   app.querySelector('#btnMetroSound').addEventListener('click', (e) => {
     metro.soundOn = !metro.soundOn;
     localStorage.setItem('stagebook_metro_sound', metro.soundOn ? '1' : '0');
-    e.target.innerHTML = metro.soundOn ? '&#128266;' : '&#128263;';
+    e.currentTarget.innerHTML = metro.soundOn ? icon('speaker') : icon('mute');
   });
   app.querySelector('#btnMetroFlash').addEventListener('click', (e) => {
     metro.flashOn = !metro.flashOn;
     localStorage.setItem('stagebook_metro_flash', metro.flashOn ? '1' : '0');
-    e.target.classList.toggle('active', metro.flashOn);
+    e.currentTarget.classList.toggle('active', metro.flashOn);
   });
 
   app.querySelector('#btnBack').addEventListener('click', () => {
@@ -1603,22 +1819,41 @@ function renderPerform(id){
   });
   app.querySelector('#btnEdit').addEventListener('click', () => go('editor', id));
 
-  const PLAY_SVG = '<path d="M8 5v14l11-7-11-7z" fill="#E8A33D"/>';
-  const PAUSE_SVG = '<rect x="6" y="5" width="4" height="14" fill="#E8A33D"/><rect x="14" y="5" width="4" height="14" fill="#E8A33D"/>';
+  const PLAY_SVG = '<path d="M8 5v14l11-7-11-7z" fill="#EAC119"/>';
+  const PAUSE_SVG = '<rect x="6" y="5" width="4" height="14" fill="#EAC119"/><rect x="14" y="5" width="4" height="14" fill="#EAC119"/>';
 
   /* ---- reference track (personal, per-phone; never affects song version) ---- */
   const btnRef = app.querySelector('#btnRefAudio');
   const refFileInput = app.querySelector('#refAudioFile');
   const btnMetroEl = app.querySelector('#btnMetro');
+  const refRow = app.querySelector('#refRow');
+  const refSeek = app.querySelector('#refSeek');
+  const refTimeCur = app.querySelector('#refTimeCur');
+  const refTimeDur = app.querySelector('#refTimeDur');
+  const refLoopLabel = app.querySelector('#refLoopLabel');
+  const refLoopToggle = app.querySelector('#refLoopToggle');
+  // loopStart/loopEnd persist per song (prefs); "active" always resets to
+  // full-song mode on open/play, per the person's explicit choice.
+  let refLoop = {start:0, end:0, active:false};
+  let refSeeking = false;
   function refIcon(){
-    btnRef.innerHTML = refAudio.playing ? '&#9632;' : '&#9836;';
+    btnRef.innerHTML = refAudio.playing ? icon('pause') : icon('music');
     btnRef.classList.toggle('active', refAudio.playing);
+  }
+  function renderLoopLabel(){
+    const hasRange = refLoop.end > refLoop.start;
+    refLoopLabel.textContent = hasRange
+      ? (refLoop.active ? 'Looping ' : 'Loop set ') + formatTime(refLoop.start) + '–' + formatTime(refLoop.end)
+      : 'Full song';
+    refLoopToggle.disabled = !hasRange;
+    refLoopToggle.classList.toggle('active', refLoop.active);
   }
   function stopRef(){
     stopRefAudio();
     stopAutoscroll();
     btnMetroEl.disabled = false;
     btnMetroEl.style.opacity = '';
+    refRow.classList.add('hidden');
     refIcon();
     playIcon.innerHTML = PLAY_SVG;
   }
@@ -1634,14 +1869,67 @@ function renderPerform(id){
     const url = URL.createObjectURL(blob);
     const el = new Audio(url);
     refAudio = {el, url, songId: s.id, playing: true};
+    const p = songPref(s.id);
+    refLoop = {start: p.loopStart || 0, end: p.loopEnd || 0, active: false};
+    renderLoopLabel();
+    refRow.classList.remove('hidden');
+    const watermark = app.querySelector('.crowWatermark');
+    if(watermark) watermark.classList.add('pulse');
     el.addEventListener('loadedmetadata', () => {
-      if(refAudio.el === el) startAudioScroll(lyricsWrap, el);
+      if(watermark) watermark.classList.remove('pulse');
+      refSeek.max = el.duration || 0;
+      refTimeDur.textContent = formatTime(el.duration || 0);
+      if(refAudio.el === el){
+        startAudioScroll(lyricsWrap, el, () =>
+          (refLoop.active && refLoop.end > refLoop.start) ? [refLoop.start, refLoop.end] : [0, el.duration || 0]);
+      }
+    });
+    el.addEventListener('timeupdate', () => {
+      if(refAudio.el !== el) return;
+      if(refLoop.active && refLoop.end > refLoop.start && el.currentTime >= refLoop.end){
+        el.currentTime = refLoop.start;
+      }
+      if(!refSeeking){
+        refSeek.value = el.currentTime;
+        refTimeCur.textContent = formatTime(el.currentTime);
+      }
     });
     el.addEventListener('ended', () => { if(refAudio.el === el) stopRef(); });
-    try{ await el.play(); }catch(e){ showToast('Could not play the linked track'); stopRef(); return; }
+    try{ await el.play(); }catch(e){ if(watermark) watermark.classList.remove('pulse'); showToast('Could not play the linked track'); stopRef(); return; }
     refIcon();
     playIcon.innerHTML = PAUSE_SVG;
   }
+  refSeek.addEventListener('input', () => {
+    refSeeking = true;
+    refTimeCur.textContent = formatTime(Number(refSeek.value));
+  });
+  refSeek.addEventListener('change', () => {
+    if(refAudio.el) refAudio.el.currentTime = Number(refSeek.value);
+    refSeeking = false;
+  });
+  app.querySelector('#refSetA').addEventListener('click', () => {
+    if(!refAudio.el) return;
+    refLoop.start = refAudio.el.currentTime;
+    if(refLoop.end <= refLoop.start) refLoop.end = 0;
+    songPref(s.id).loopStart = refLoop.start;
+    songPref(s.id).loopEnd = refLoop.end;
+    savePrefs();
+    renderLoopLabel();
+  });
+  app.querySelector('#refSetB').addEventListener('click', () => {
+    if(!refAudio.el) return;
+    if(refAudio.el.currentTime <= refLoop.start){ showToast('Loop end must be after the start'); return; }
+    refLoop.end = refAudio.el.currentTime;
+    songPref(s.id).loopStart = refLoop.start;
+    songPref(s.id).loopEnd = refLoop.end;
+    savePrefs();
+    renderLoopLabel();
+  });
+  refLoopToggle.addEventListener('click', () => {
+    refLoop.active = !refLoop.active;
+    renderLoopLabel();
+  });
+  app.querySelector('#refManage').addEventListener('click', () => openRefOptions());
   let refLongPress = null, refPressConsumed = false;
   btnRef.addEventListener('touchstart', () => {
     refPressConsumed = false;
@@ -1657,11 +1945,13 @@ function renderPerform(id){
     const file = e.target.files[0];
     e.target.value = '';
     if(!file) return;
+    if(!file.type.startsWith('audio/')){ showToast("That doesn't look like an audio file"); return; }
     try{
       await audioPut(s.id, file);
       songPref(s.id).audioName = file.name;
       savePrefs();
-      showToast('Track linked: ' + file.name);
+      const mb = file.size / (1024*1024);
+      showToast(mb > 20 ? `Linked: ${file.name} (${mb.toFixed(0)}MB, might take a moment)` : `Track linked: ${file.name}`);
       playRef();
     }catch(err){ showToast('Could not store the track'); }
   });
@@ -1685,6 +1975,8 @@ function renderPerform(id){
       if(refAudio.playing) stopRef();
       try{ await audioRemove(s.id); }catch(e){}
       delete songPref(s.id).audioName;
+      delete songPref(s.id).loopStart;
+      delete songPref(s.id).loopEnd;
       savePrefs();
       showToast('Track removed');
     });
@@ -1727,6 +2019,7 @@ function renderPerform(id){
     lyricsWrap.innerHTML = renderBody(s.body || '', perf.semitone);
     keyVal.textContent = transposeKeyLabel(s.key, perf.semitone);
     attachChordTaps();
+    updateScrollProgress();
   }
 
   app.querySelector('#fontUp').addEventListener('click', () => { perf.fontScale = Math.min(2, perf.fontScale + 0.1); applyFont(); });
@@ -1734,6 +2027,7 @@ function renderPerform(id){
   function applyFont(){
     lyricsWrap.style.fontSize = (17 * perf.fontScale) + 'px';
     fontVal.textContent = Math.round(perf.fontScale*100) + '%';
+    updateScrollProgress();
   }
 
   app.querySelector('#btnPlay').addEventListener('click', () => {

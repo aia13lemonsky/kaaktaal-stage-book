@@ -1,13 +1,13 @@
 {
-  "name": "Kaaktaal Stage Book",
-  "short_name": "Stage Book",
+  "name": "Kaaktaal Playbook",
+  "short_name": "Playbook",
   "description": "Chord/lyric charts, metronome, and setlists for live performance.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0B0B0C",
-  "theme_color": "#0B0B0C",
+  "background_color": "#1D1D1B",
+  "theme_color": "#1D1D1B",
   "icons": [
     {
       "src": "kaaktaal-badge-192.png",

@@ -1,7 +1,7 @@
 // Bump this string on every deploy — it's the only thing that makes the
 // "update available" prompt fire. Same content with the same name here means
 // clients never hear about the change.
-const CACHE_NAME = 'stagebook-v2';
+const CACHE_NAME = 'stagebook-v6';
 
 const APP_SHELL = [
   './',
@@ -13,6 +13,7 @@ const APP_SHELL = [
   './kaaktaal-apple-touch-icon.png',
   './kaaktaal-favicon.png',
   './kaaktaal-wordmark.png',
+  './kaaktaal-crow-mark.png',
 ];
 
 self.addEventListener('install', (event) => {

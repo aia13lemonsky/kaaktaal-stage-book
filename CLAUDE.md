@@ -1,4 +1,11 @@
-# Kaaktaal Stage Book — Project Memory
+# Kaaktaal Playbook — Project Memory
+
+(Renamed from "Kaaktaal Stage Book" to "Kaaktaal Playbook" — display name only:
+`<title>`, `manifest.json` name/short_name, the share-sheet title. The repo name,
+live URL, `stagebook_*` storage keys, and `stagebook-*.json` export filenames were
+deliberately left alone — renaming those would break the already-installed home-screen
+icon and existing storage/exports for no visible benefit. If old notes below say
+"Stage Book," that's why.)
 
 Read this fully before making any change. This file exists so nothing built so far gets lost,
 reinvented, or accidentally broken by a future session that doesn't have this context.
@@ -29,9 +36,11 @@ doubt, favor the option that is less likely to break on stage over the one that 
   - `stagebook_metro_flash` — '1' or '0', full-screen edge-flash metronome on/off
   - `stagebook_prefs_v1` — **personal, per-phone prefs, never shared and never version-bumping**:
     per-song default scroll speed (`secPerLine`) and key offset (`semitone`), per-song color tags,
-    linked reference-track names (`audioName`), custom library order (`songOrder`), and the cached
-    notice banner (`noticeCache`). Everything in here is deliberately outside the song schema so
-    it can't churn versions or leak into share files.
+    linked reference-track names (`audioName`) plus their A-B practice loop points in seconds
+    (`loopStart`/`loopEnd` — NOT whether looping is active; that always resets to off, see
+    Features), custom library order (`songOrder`), and the cached notice banner (`noticeCache`).
+    Everything in here is deliberately outside the song schema so it can't churn versions or leak
+    into share files.
   - Plus one IndexedDB database, `stagebook-audio` (store `tracks`, keyed by song id) — reference
     audio blobs are far too large for localStorage. This is the only IndexedDB use; don't add more
     without cause.
@@ -188,11 +197,25 @@ photos/docs, which depends on this exact syntax staying stable).
   the user exits via system UI.
 - **Reference track per song** (`♬` in the stage header, personal per phone) — tap with no track
   linked opens a file picker; the chosen audio file is COPIED into IndexedDB (`stagebook-audio`),
-  so playback is instant/offline and survives the original file moving. Tap = play/stop; long-press
-  (or right-click) opens change/remove options. While playing: metronome is stopped and disabled,
-  and the scroll position is SLAVED to the audio clock (`startAudioScroll`) — scroll lands exactly
-  at the end when the track ends, and stops there. Linking/changing a track touches only
-  `prefs.songs[id].audioName` — never the song object, never the version.
+  so playback is instant/offline and survives the original file moving. Tap = play/stop; long-press,
+  right-click, or the always-visible `⋮` in the playback row all open the same change/remove
+  dialog — removal must be easy to find, not just a long-press secret. No hard limit on file count,
+  size, or format: just checks `file.type.startsWith('audio/')` and shows a non-blocking toast above
+  ~20MB. There is no server here (static GitHub Pages) so there was never a storage-cost reason for
+  caps — don't reintroduce a 5-song/10MB/mp3-only rule without being asked; it was deliberately
+  removed. While playing: metronome is stopped and disabled. Linking/changing a track touches only
+  `prefs.songs[id].audioName` (+ loop fields below) — never the song object, never the version.
+- **A-B practice loop** (`refRow`, shown while a reference track is playing) — a seek scrubber
+  (`refSeek`, drag-to-preview via `input`, actually seeks on `change`) plus "A"/"B" buttons that
+  capture the current playback position as loop start/end. Once both are set (`end > start`), the
+  LOOP toggle enables; toggling it on/off is the only thing that flips `refLoop.active` — always
+  resets to **off** (full-song) each time the track is (re)started, even though the A/B points
+  themselves persist per song in prefs indefinitely. The audio jump-back is a plain `timeupdate`
+  check (`currentTime >= loopEnd` → `currentTime = loopStart`); scroll is kept in sync by
+  `startAudioScroll`'s `getBounds()` callback switching from `[0, duration]` to `[loopStart,
+  loopEnd]` while active, so **the lyrics snap back through the same scroll range every repeat** —
+  this was an explicit choice (the person considered pausing scroll during a loop and rejected it).
+  Removing the track also clears its loop points.
 - **Notice banner** (`notice.json` + `refreshNotice`) — a pastel-red banner above the library
   search box showing e.g. "Next: Friday 7pm rehearsal" with an optional Open-calendar button. The
   single source of truth is **`notice.json` in the repo root**: edit `text`/`link` on github.com
@@ -234,12 +257,111 @@ want the repo's visibility/privacy tradeoff reconsidered.
 
 ## Style
 
-Dark, near-black stage palette (`--bg: #0B0B0C`), warm off-white lyric text, pastel chrome yellow
-(`--chord: #F0DE8A`) for chords, blue for notes, amber (`#E8A33D`) for interactive UI/brand chrome,
-system font stack only (no web fonts — reliability over polish). The band's brand red (`--red:
-#E30613`) is still used for non-chord accents (metronome downbeat, danger states) — don't repurpose
-it back onto chord text. Keep this. Any new UI should read as an extension of it, not a
-departure.
+**Softened Neo-Brutalist Dark Mode.** The original Neo-Brutalist pass (pure black, 0-radius sharp
+rectangles, thick 3px borders, hard offset drop-shadows) was directly revised afterward to a warmer,
+rounder version — same bones (heavy borders, uppercase nav, solid-fill press states, SVG icon set),
+softer execution (rounded corners, no shadows, muted-black canvas, an earth-toned palette instead of
+neon). `kaaktaal-design-direction.md` describes an even older four-color system and is kept only for
+its non-palette guidance. For anything about color, shape, or button behavior, this section and the
+code are the only source of truth — if it disagrees with either older doc, this section wins.
+
+**5-color palette**, on a muted-black canvas:
+- `--bg` (`#1D1D1B`, Muted Black — NOT pure black) — canvas only.
+- `--white` (`#EAE4DA`, Seashell) / `--silver` (`#9ED6DF`, Sky) — lyric text, resting-state button
+  borders/text, section-tag color-coding (`sectionColor()`: seashell for chorus, sky for everything
+  else). Note `--silver` is also every untagged card/row's default border color, so untagged rows
+  read with a visible sky-blue outline now, not a neutral grey — that's an intentional side effect
+  of the color swap, not a bug.
+- `--yellow` (`#EAC119`, Mustard Yellow) — chords, primary buttons, the play icon, key/font pill
+  accents, star/save icons, slider thumbs.
+- `--cyan` (`#329C64`, Emerald Green) — "this is currently selected/live" states: multi-select rows,
+  setpos badge, progress strip, active loop toggle, `<<note>>` annotations. Distinct from yellow's
+  "this is a button you can press."
+- `--magenta` (`#C63F3E`, Red Passion) — danger/destructive actions, the muted-string chord-diagram
+  marker, and the `notice.json` reminder banner background.
+- `--radius: 15px` everywhere (`border-radius:var(--radius)`) — cards, buttons, inputs, chord
+  diagrams, slider tracks. Small fixed-size elements (checkboxes, color dots, metronome dots) end up
+  fully circular at this radius since it exceeds half their box size — expected, not a bug.
+- `--border-w: 2px` on every interactive element (bumped down from an earlier 3px); the app's
+  hairline dividers (`stagehead`/`ctrlbar`/`subrow`/`toast`/etc, previously 1px `var(--line)`) were
+  bumped up to 2px to match — "make all the borders 2px" was applied literally, everywhere.
+  **No box-shadows anywhere** — the earlier hard offset drop-shadows (`6px 6px 0 <color>` on the FAB,
+  selected rows, tagged cards) were removed outright. The one exception is `.edgeFlash`'s
+  `box-shadow`, which is the full-screen metronome flash *effect* (an actual feature, animated via
+  JS in `triggerEdgeFlash()`), not a decorative card shadow — leave that alone.
+
+**Button/card fill pattern** (unchanged from the brutalist pass — still the one place opacity is
+intentional):
+- Resting buttons: transparent or a 10%-alpha tint of their accent color (`--yellow-10`/`--cyan-10`/
+  `--magenta-10`, via `hexToRgba()`), colored border, colored text.
+- Pressed/active buttons: full solid accent fill, black text.
+- Library/setlist cards with a color tag: 25%-alpha tint of the tag color as background, tag-colored
+  border (`songRowHTML()` / setlist row rendering in `renderSetlists()`, both via
+  `hexToRgba(color, 0.25)`). Untagged cards stay the plain `--surface` fill (sky-tinted, see above).
+  Selection state (cyan) always wins over a card's own tag color while multi-selecting.
+- `TAG_COLORS` — the color-tag picker options for both songs and setlists — is now a distinct
+  7-color coding palette (plus blank/none), separate from the 5 UI accent colors:
+  `['', '#EAC119' /*Mustard*/, '#808BC5' /*Lavender*/, '#EAA7C7' /*Pink Quartz*/,
+  '#9ED6DF' /*Sky*/, '#245E55' /*Tea*/, '#ED773C' /*Tangerine*/, '#C63F3E' /*Red Passion*/]`.
+
+**Icons** (`ICON_STROKE`/`ICON_FILL`/`icon(name, size)` helper, defined near the top of the script) —
+a hand-drawn SVG set replacing every unicode/emoji glyph the toolbars used to use: bold 2.5px
+strokes, `stroke="currentColor"` so a button's own resting/active/pressed color drives the icon with
+zero extra JS. Filled icons (play, pause, flash, kebab, star) use `fill="currentColor"` instead. When
+wiring a click handler that toggles an icon button's own class or innerHTML, always use
+`e.currentTarget`, never `e.target` — a click can land on the inner `<svg>`/`<path>`. A few
+single-glyph controls (key transpose `-`/`+`, font size `A-`/`A+`, the multi-select checkbox tick)
+were deliberately left as plain characters.
+
+**Typography**: still the system serif/sans/monospace stacks only (no web fonts). `--font-display`
+is now a bold-slab-serif-first stack (`'Roboto Slab', Rockwell, 'Bookman Old Style',
+'American Typewriter', Georgia, serif`) — actual rendered font depends on what's installed (Rockwell
+on Windows, American Typewriter on iOS/macOS, falls back to bold Georgia elsewhere). Applied to
+headers (`.topbar h1`, `.stagehead .t1`, `.resultCard h2`) AND now to button text (`.btn`,
+`.smallbtn`, `.tapbtn` — covers Cancel/Save/Delete song/Reorder/TAP/etc). Nav microcopy (`.count`,
+`.colorHint`) is uppercase with tracked letter-spacing. Data/metadata (`.ver` version badges,
+timestamps, speed/time readouts) uses the monospace `--font-chord` stack.
+
+**Sliders** (`input[type=range]`, one shared rule block covers every range input in the app): thin
+1px `--silver`-bordered pill track (4px tall) and a small rounded mustard thumb (16px circle, 2px
+`--bg`-colored border for contrast) via `::-webkit-slider-thumb`/`::-moz-range-thumb`. This replaced
+an earlier thick-track/oversized-rectangular-thumb brutalist design — don't reintroduce that geometry
+without being asked.
+
+**Grain/grit texture** (`.grain`, a single fixed full-viewport `div` in the static body markup, after
+`.edgeFlash`): a tiny inline SVG `feTurbulence` noise tile as a `background-image` data URI (no
+image asset, no network call), `mix-blend-mode:overlay` at `opacity:0.05`, `z-index:95` (above
+everything, `pointer-events:none`). Because it's a blend, not a paint, one element textures the
+canvas AND every card/button fill beneath it simultaneously — don't duplicate the noise per-surface.
+Keep the opacity low; this is meant to read as "depth and character," not visible static, and must
+never compromise the at-a-glance legibility a performer needs mid-song.
+
+**The crow mark** (`kaaktaal-crow-mark.png`, extracted from `logo black.png` — see git history for
+the alpha-cutout extraction approach if regenerating). Used as a watermark (`.crowWatermark`,
+`position:fixed`, `opacity:0.2`, cropped off the right edge) in every screen with open empty space:
+the performance view (sibling of `.lyricsArea` inside `.stage`, z-index kept below `.lyricsWrap`'s
+explicit `z-index:2` so lyric text always stacks above it), the library view, and the setlists view.
+20% is louder than the original brutalist pass's 5% — a deliberate, explicit revision, don't quietly
+dial it back down. A separate, more visible (~32% opacity) small mark still appears in true
+empty-state screens (`emptyStateHTML()` — no songs yet, no setlists yet, no search matches, etc.) —
+that's a distinct, earlier "personality on a low-stakes screen" feature, not the watermark, and keeps
+its own opacity. The one animated moment is a brief settle/pulse (`.crowWatermark.pulse`, respects
+`prefers-reduced-motion`) during the real wait on a reference track's `loadedmetadata`.
+
+**Brandmark logo** (`.brandmark`, top-left of the library view) is `height:38px` (bumped up from an
+earlier 28px — explicit "make the logo a little bigger" request). **Search-to-library spacing**:
+`.search`'s bottom margin is `24px` (bumped from 8px) for visible breathing room before the song
+count line / list — an explicit, deliberate gap, don't shrink it back down to tighten the layout.
+
+**Motion**: screen transitions use the native View Transitions API (`render()`/`renderNow()` in the
+boot section) — a ~150ms fade+rise on entering content, feature-detected with an instant-swap
+fallback, and fully disabled via `prefers-reduced-motion` in CSS alone (no JS branching needed). The
+actual DOM update happens synchronously inside the transition callback either way, so this never
+delays the app becoming interactive — only the decorative cross-fade layers on top. The FAB has a
+quick squash-on-press + spring-back-with-overshoot release (`cubic-bezier(0.34, 1.56, 0.64, 1)`)
+instead of a flat opacity dim.
+
+Any new UI should read as an extension of all this, not a departure.
 
 ## Files in this handoff
 
@@ -249,6 +371,15 @@ departure.
 - `manifest.json` — PWA manifest, references the icon files below
 - `notice.json` — the band-notice banner content (`{"text": "...", "link": "..."}`); edit this on
   GitHub to change the banner on every phone. Empty text = banner hidden.
+- `kaaktaal-design-direction.md` — the ORIGINAL four-color visual brief. Its palette section is
+  fully superseded by the Neo-Brutalist system described in "Style" above; its non-palette guidance
+  (motion discipline, crow-as-restrained-watermark concept) is still conceptually relevant. Not
+  gitignored — no privacy concern, unlike the real song content.
+- `kaaktaal-crow-mark.png` — the crow/mark silhouette (white glyph, transparent background) used for
+  the watermarks and empty-state illustrations. Re-extracted from `logo black.png` (see "Style"
+  above) — regenerate from that file, not `kaaktaal-badge-source.png`, if it ever needs redoing.
+- `logo black.png` — current source art for the crow mark: a black circle with the glyph as
+  transparent alpha cutouts. Keep on disk; don't delete even though nothing loads it at runtime.
 - `sw.js` — service worker (app-shell cache-first + update-prompt handshake). **Bump `CACHE_NAME`
   on every deploy.**
 - `kaaktaal-badge-192.png` / `kaaktaal-badge-512.png` / `kaaktaal-apple-touch-icon.png` — generated

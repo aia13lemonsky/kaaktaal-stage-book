@@ -33,6 +33,13 @@
     --surface-2: rgba(158,214,223,0.13);
     --line: rgba(158,214,223,0.3);
     --danger: var(--magenta);
+    /* Solid (non-transparent) card fill for anything that floats OVER other
+       readable content — popups, banners, the fullscreen toggle. --surface/
+       --surface-2 are deliberately translucent tints and stay that way for
+       in-flow elements sitting on the plain canvas (song rows, dividers);
+       using them on a floating overlay let whatever's underneath bleed
+       through and become unreadable. */
+    --popup-bg: #272C2B;
 
     /* 10%-opacity resting tints for buttons/shapes (brief: no grey/black
        fill at rest — a jarring 100% solid takes over on press instead). */
@@ -57,7 +64,12 @@
   }
   button, input, textarea, select{ font-family: inherit; color: inherit; }
   button{ -webkit-appearance:none; appearance:none; border:none; background:none; cursor:pointer; }
-  .app{ max-width:640px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+  /* 100vh is taller than the real visible viewport whenever mobile browser
+     chrome (address bar) is on screen — that's what was cropping the bottom
+     of the lyric view and pushing the edge-flash/fullscreen button off
+     screen. 100dvh tracks the actual visible area; the 100vh line stays as a
+     fallback for browsers that don't know `dvh` yet. */
+  .app{ max-width:640px; margin:0 auto; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
 
   /* ---------- top bar ---------- */
   .topbar{
@@ -88,26 +100,26 @@
     font-family:var(--font-chord);
   }
   .search::placeholder{ color:var(--muted); }
-  .songlist{ padding:4px 14px 110px; display:flex; flex-direction:column; gap:10px; }
+  .songlist{ padding:4px 14px 110px; display:flex; flex-direction:column; gap:6px; }
   .songrow{
-    display:flex; align-items:center; gap:11px; padding:11px 14px; border-radius:var(--radius);
-    background:var(--surface); border:2px solid var(--silver);
+    display:flex; align-items:center; gap:9px; padding:7px 11px; border-radius:var(--radius);
+    background:var(--surface); border:1px solid var(--silver);
   }
   /* "selected" (multi-select) is a cyan state, distinct from yellow "you can press this" */
   .songrow.selected{ border-color:var(--cyan); background:var(--cyan-10); }
   .checkbox{
-    width:22px; height:22px; border-radius:var(--radius); border:2px solid var(--silver); flex-shrink:0;
-    display:flex; align-items:center; justify-content:center; font-size:13px;
+    width:18px; height:18px; border-radius:var(--radius); border:1px solid var(--silver); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:11px;
   }
   .checkbox.checked{ background:var(--cyan); border-color:var(--cyan); color:#000; }
   .songrow .meta{ flex:1; min-width:0; }
-  .songrow .title{ font-size:17px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .songrow .sub{ font-size:12.5px; color:var(--ink-dim); margin-top:2px; }
+  .songrow .title{ font-size:14.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .songrow .sub{ font-size:10.5px; color:var(--ink-dim); margin-top:1px; }
   .ver{ font-family:var(--font-chord); font-weight:700; }
   .songrow .sub .ver{ color:var(--silver); }
   .songrow .key{
-    font-family:var(--font-chord); font-weight:700; color:var(--yellow); font-size:13px;
-    background:var(--yellow-10); padding:4px 8px; border-radius:var(--radius); flex-shrink:0;
+    font-family:var(--font-chord); font-weight:700; color:var(--yellow); font-size:11px;
+    background:var(--yellow-10); padding:3px 6px; border-radius:var(--radius); flex-shrink:0;
   }
   .empty{ text-align:center; color:var(--muted); padding:60px 24px; line-height:1.6; }
   .empty .emptyCrow{ width:60px; height:60px; opacity:0.32; display:block; margin:0 auto 14px; }
@@ -125,10 +137,14 @@
   .count{ text-align:center; color:var(--muted); font-size:11.5px; padding:6px 0 2px; text-transform:uppercase; letter-spacing:0.6px; }
 
   .selectbar{
-    position:fixed; left:0; right:0; bottom:0; z-index:35; background:var(--surface-2);
-    border-top:2px solid var(--line); padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-    display:flex; gap:10px; max-width:640px; margin:0 auto;
+    position:fixed; left:0; right:0; bottom:0; z-index:35; background:var(--popup-bg);
+    border-top:2px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    display:flex; gap:8px; max-width:640px; margin:0 auto;
   }
+  /* Smaller, tighter type than the standard .btn so three buttons (including
+     "Share N selected") reliably fit on one line without wrapping to two
+     uneven-height rows on narrow phones. */
+  .selectbar .btn{ padding:10px 6px; font-size:12.5px; letter-spacing:0.2px; }
 
   /* ---------- editor ---------- */
   .editor{ padding:8px 16px 100px; display:flex; flex-direction:column; gap:14px; }
@@ -170,7 +186,7 @@
   }
 
   /* ---------- performance view ---------- */
-  .stage{ display:flex; flex-direction:column; height:100vh; }
+  .stage{ display:flex; flex-direction:column; height:100vh; height:100dvh; }
   .stagehead{
     display:flex; align-items:center; gap:10px; padding:14px 14px 10px;
     border-bottom:2px solid var(--line); flex-shrink:0;
@@ -254,22 +270,36 @@
   .refLoopLabel{ font-size:11.5px; color:var(--muted); flex:1; text-align:center; }
   #refLoopToggle.active{ background:var(--cyan); color:#000; }
 
+  /* ---------- timeline edit ---------- */
+  .timelineList{ padding:4px 14px 110px; display:flex; flex-direction:column; gap:8px; }
+  .tlrow{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius);
+    background:var(--surface); border:1px solid var(--silver);
+  }
+  .tlrow .tlmeta{ flex:1; min-width:0; }
+  .tlrow .tlname{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; }
+  .tlrow .tlguide{
+    font-size:11.5px; color:var(--ink-dim); font-family:var(--font-chord); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .tlrow .btn{ flex:none; padding:9px 14px; font-size:12.5px; min-width:84px; }
+
   .lyricsArea{ flex:1; min-height:0; display:flex; }
   .scrollProgress{ width:4px; flex-shrink:0; background:var(--line); position:relative; }
   .scrollProgress .fill{ position:absolute; top:0; left:0; right:0; height:0%; background:var(--yellow); }
   .lyricsWrap{ flex:1; min-width:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px 40vh; position:relative; z-index:2; }
   .crowWatermark{
     position:fixed; right:-10px; bottom:calc(4vh + env(safe-area-inset-bottom));
-    width:46vw; max-width:280px; opacity:0.2; pointer-events:none; z-index:1;
+    width:46vw; max-width:280px; opacity:0.1; pointer-events:none; z-index:1;
     transition:opacity 300ms ease;
   }
   /* the one real wait in the app: a reference track loading. A brief settle
      pulse on the mark itself stands in for the "wing flap" idea in the brief
      — there's no literal wing shape in this mark to animate. */
-  @keyframes crowPulse{ 0%,100%{ opacity:0.2; transform:scale(1); } 50%{ opacity:0.32; transform:scale(1.03); } }
+  @keyframes crowPulse{ 0%,100%{ opacity:0.1; transform:scale(1); } 50%{ opacity:0.22; transform:scale(1.03); } }
   .crowWatermark.pulse{ animation:crowPulse 900ms ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce){
-    .crowWatermark.pulse{ animation:none; opacity:0.28; }
+    .crowWatermark.pulse{ animation:none; opacity:0.18; }
   }
   .line{ margin-bottom:22px; }
   .seg{ display:inline-block; position:relative; padding-top:1.55em; white-space:pre; }
@@ -297,24 +327,24 @@
   /* chord diagram popover */
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; display:flex; align-items:flex-end; justify-content:center; }
   .diagramCard{
-    background:var(--surface); border-radius:var(--radius); padding:22px 24px calc(28px + env(safe-area-inset-bottom));
+    background:var(--popup-bg); border-radius:var(--radius); padding:16px 18px calc(20px + env(safe-area-inset-bottom));
     width:100%; max-width:640px; text-align:center;
   }
-  .diagramCard .cname{ font-family:var(--font-chord); font-size:20px; font-weight:700; color:var(--yellow); margin-bottom:6px; }
-  .diagramCard .cnotes{ font-family:var(--font-chord); font-size:13px; color:var(--ink-dim); letter-spacing:0.5px; margin-bottom:16px; }
+  .diagramCard .cname{ font-family:var(--font-chord); font-size:17px; font-weight:700; color:var(--yellow); margin-bottom:5px; }
+  .diagramCard .cnotes{ font-family:var(--font-chord); font-size:12px; color:var(--ink-dim); letter-spacing:0.5px; margin-bottom:12px; }
   .diagramCard .approx{ font-size:11px; color:var(--muted); margin-top:4px; }
-  .diagramRow{ display:flex; gap:16px; overflow-x:auto; justify-content:flex-start; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; }
+  .diagramRow{ display:flex; gap:14px; overflow-x:auto; justify-content:flex-start; padding:2px 2px 6px; -webkit-overflow-scrolling:touch; }
   .diagramItem{ flex:0 0 auto; }
-  .diagramItem svg{ width:120px; height:144px; display:block; }
-  .diagramItem .slabel{ font-size:11.5px; color:var(--ink-dim); margin-top:4px; }
+  .diagramItem svg{ width:100px; height:120px; display:block; }
+  .diagramItem .slabel{ font-size:11px; color:var(--ink-dim); margin-top:3px; }
 
   /* import results */
   .resultCard{
-    background:var(--surface); border-radius:var(--radius); padding:22px 22px calc(24px + env(safe-area-inset-bottom));
+    background:var(--popup-bg); border-radius:var(--radius); padding:16px 16px calc(18px + env(safe-area-inset-bottom));
     width:calc(100% - 32px); max-width:520px; max-height:75vh; overflow-y:auto;
   }
-  .resultCard h2{ font-family:var(--font-display); font-size:19px; margin:0 0 14px; }
-  .resultrow{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:2px solid var(--line); font-size:14px; }
+  .resultCard h2{ font-family:var(--font-display); font-size:17px; margin:0 0 12px; }
+  .resultrow{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:2px solid var(--line); font-size:13px; }
   .resultrow:last-child{ border-bottom:none; }
   .dot{ width:9px; height:9px; border-radius:var(--radius); flex-shrink:0; }
   .dot.new{ background:var(--yellow); }
@@ -326,7 +356,7 @@
 
   /* toast */
   .toast{
-    position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:var(--surface-2);
+    position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:var(--popup-bg);
     border:2px solid var(--line); color:var(--ink); padding:10px 18px; border-radius:var(--radius); font-size:13.5px;
     z-index:80; opacity:0; pointer-events:none; transition:opacity .25s; max-width:80%; text-align:center;
   }
@@ -376,7 +406,7 @@
   /* full-screen lyric view */
   .fsbtn{
     position:fixed; right:14px; bottom:calc(18px + env(safe-area-inset-bottom));
-    width:46px; height:46px; border-radius:var(--radius); background:var(--surface-2);
+    width:46px; height:46px; border-radius:var(--radius); background:var(--popup-bg);
     border:2px solid var(--line); color:var(--ink-dim); font-size:20px; z-index:45;
     display:flex; align-items:center; justify-content:center;
   }
@@ -387,6 +417,15 @@
     position:fixed; inset:0; z-index:85; pointer-events:none; opacity:0;
     box-shadow: inset 0 0 0 0 rgba(0,0,0,0);
   }
+  /* Driven by a class toggle + CSS animation rather than an inline-style +
+     requestAnimationFrame round trip — the old approach set opacity:1 then
+     waited a frame before starting the fade, which could slip the flash a
+     frame or more behind the audio click it's supposed to land with. A class
+     swap applies synchronously in the same tick as the click. */
+  @keyframes edgeFlashPulse{ from{ opacity:1; } to{ opacity:0; } }
+  .edgeFlash.flash-yellow, .edgeFlash.flash-accent{ animation:edgeFlashPulse 220ms ease-out; }
+  .edgeFlash.flash-yellow{ box-shadow: inset 0 0 0 16px var(--yellow); }
+  .edgeFlash.flash-accent{ box-shadow: inset 0 0 0 16px var(--magenta); }
 
   /* Fine grain/grit wash — a single fixed noise layer sitting above the
      whole app and blended (not painted) into whatever's beneath it, so the
@@ -880,6 +919,35 @@ function sectionColor(name){
   if(/chorus/.test(n)) return '#EAE4DA';
   return '#9ED6DF';
 }
+// Parses the current lyric body into an ordered list of {Section} markers for
+// the segment-timeline feature (marking start times, segment-paced autoscroll,
+// segment-snapped looping) — walks the text the same way renderBody() does, so
+// this list lines up positionally with the .sectiontag elements renderBody()
+// actually renders, by construction.
+function parseSegments(body){
+  const lines = (body || '').split('\n');
+  const out = [];
+  let pending = null;
+  for(const rawLine of lines){
+    const line = rawLine.trim();
+    if(line === '') continue;
+    const sectionMatch = line.match(/^\{(.+)\}$/);
+    if(sectionMatch){
+      pending = {name: sectionMatch[1], guideLine: ''};
+      out.push(pending);
+      continue;
+    }
+    if(pending && !pending.guideLine){
+      const segs = tokenizeLine(rawLine);
+      const isNoteOnly = segs.length === 1 && segs[0].type === 'note';
+      if(!isNoteOnly){
+        const text = segs.filter(seg => seg.type !== 'note').map(seg => seg.text).join('').trim();
+        if(text) pending.guideLine = text;
+      }
+    }
+  }
+  return out;
+}
 function renderBody(body, semitoneShift){
   const lines = body.split('\n');
   let html = '';
@@ -923,7 +991,7 @@ function slug(str){ return (str||'song').toLowerCase().replace(/[^a-z0-9]+/g,'-'
 async function shareOrDownload(songsToSend, filename){
   // prevBody is a personal undo safety net, not part of the shared song schema —
   // strip it so shared/backup files stay clean and match the documented format.
-  const clean = songsToSend.map(({prevBody, ...rest}) => rest);
+  const clean = songsToSend.map(({prevBody, versionSnapshot, ...rest}) => rest);
   const json = JSON.stringify(clean, null, 2);
   const blob = new Blob([json], {type:'application/json'});
   try{
@@ -989,10 +1057,15 @@ function showImportResults(results){
 let songs = loadSongs();
 let setlists = loadSetlists();
 let route = {view:'library'};
-let perf = {semitone:0, fontScale:1, scrolling:false, secPerLine:10, wakeLock:null};
-let metro = {running:false, intervalId:null, beatIndex:0, soundOn:(localStorage.getItem('stagebook_metro_sound')==='1'), flashOn:(localStorage.getItem('stagebook_metro_flash')==='1')};
+let perf = {semitone:0, fontScale:1, scrolling:false, secPerLine:10, wakeLock:null, refScrollPaused:false};
+let metro = {running:false, timerId:null, beatIndex:0, soundOn:(localStorage.getItem('stagebook_metro_sound')==='1'), flashOn:(localStorage.getItem('stagebook_metro_flash')==='1')};
 let selectMode = false;
 let selectedIds = new Set();
+// A brand-new song (from the library's + button) is held here, NOT pushed
+// into `songs`/persisted, until the editor's Save button actually runs — so
+// tapping Back/Cancel (or the hardware back button) without saving leaves no
+// trace. go() discards it automatically when navigating away from its editor.
+let pendingNewSong = null;
 
 const app = document.getElementById('app');
 const toastEl = document.getElementById('toast');
@@ -1007,6 +1080,9 @@ function showToast(msg){
 // the popped state. In-app back buttons still call go() directly.
 let suppressPush = false;
 function go(view, id, extra){
+  if(pendingNewSong && route.view === 'editor' && route.id === pendingNewSong.id && !(view === 'editor' && id === pendingNewSong.id)){
+    pendingNewSong = null; // leaving the new-song editor without saving — discard the draft
+  }
   route = Object.assign({view, id}, extra || {});
   stopAutoscroll();
   stopMetronome();
@@ -1023,6 +1099,7 @@ function renderNow(){
   if(route.view === 'library') return renderLibrary();
   if(route.view === 'editor') return renderEditor(route.id);
   if(route.view === 'perform') return renderPerform(route.id);
+  if(route.view === 'timeline') return renderTimeline(route.id);
   if(route.view === 'setlists') return renderSetlists();
   if(route.view === 'setlistDetail') return renderSetlistDetail(route.id);
   if(route.view === 'reorder') return renderReorder();
@@ -1053,7 +1130,7 @@ function songRowHTML(s){
   const color = (prefs.songs && prefs.songs[s.id] && prefs.songs[s.id].color) || '';
   const isSelected = selectedIds.has(s.id);
   const style = (color && !isSelected)
-    ? ` style="background:${hexToRgba(color,0.25)}; border-color:${color}; border-width:var(--border-w);"`
+    ? ` style="background:${hexToRgba(color,0.25)}; border-color:${color};"`
     : '';
   return `
   <div class="songrow ${isSelected?'selected':''}" data-id="${s.id}"${style}>
@@ -1114,7 +1191,7 @@ function renderLibrary(filter=''){
 
   app.querySelector('#btnNew') && app.querySelector('#btnNew').addEventListener('click', () => {
     const s = {id:newId(), title:'', artist:'', key:'', capo:'', bpm:'', timeSig:'4/4', aliases:'', body:''};
-    songs.push(s); saveSongs(songs);
+    pendingNewSong = s;
     go('editor', s.id);
   });
   searchBox.addEventListener('input', e => updateList(e.target.value));
@@ -1139,7 +1216,7 @@ function renderSelectBar(searchBox){
   bar.innerHTML = `
     <button class="btn ghost" id="btnCancelSel">Cancel</button>
     <button class="btn ghost" id="btnReorder">Reorder</button>
-    <button class="btn blue" id="btnShareSel">Share ${selectedIds.size} selected</button>
+    <button class="btn blue" id="btnShareSel">Share (${selectedIds.size})</button>
   `;
   document.body.appendChild(bar);
   bar.querySelector('#btnCancelSel').addEventListener('click', () => { selectMode=false; selectedIds.clear(); renderLibrary(); });
@@ -1266,7 +1343,7 @@ function renderSetlists(){
   }
   listEl.innerHTML = setlists.map(sl => {
     const style = sl.color
-      ? ` style="background:${hexToRgba(sl.color,0.25)}; border-color:${sl.color}; border-width:var(--border-w);"`
+      ? ` style="background:${hexToRgba(sl.color,0.25)}; border-color:${sl.color};"`
       : '';
     return `
     <div class="songrow" data-id="${sl.id}"${style}>
@@ -1407,8 +1484,17 @@ function openAddSongsPicker(setlist, onDone){
 }
 
 /* ---------- EDITOR ---------- */
+// Whether the live fields have drifted from the last real (version-bumped)
+// save — gates the "Discard test changes" button. False for a song that's
+// never been version-bumped (nothing to revert TO yet).
+function differsFromSnapshot(s){
+  if(!s.versionSnapshot) return false;
+  const keys = ['title','artist','aliases','key','capo','bpm','timeSig','duration','body'];
+  return keys.some(k => (s[k]||'') !== (s.versionSnapshot[k]||''));
+}
 function renderEditor(id){
-  const s = songs.find(x => x.id === id);
+  const isNew = !!(pendingNewSong && pendingNewSong.id === id);
+  const s = isNew ? pendingNewSong : songs.find(x => x.id === id);
   if(!s) return go('library');
   const ver = s.version || 0;
   app.innerHTML = `
@@ -1419,7 +1505,7 @@ function renderEditor(id){
       <button class="iconbtn" id="btnShareOne" title="Share this song">${icon('upload')}</button>
     </div>
     <div class="editor">
-      ${ver > 0 ? `<div class="versionline">Currently <span class="ver">v${ver}</span>${s.updatedBy ? ' · last edited by '+escapeHtml(s.updatedBy) : ''}${s.updatedAt ? ' · '+timeAgo(s.updatedAt) : ''}. Saving will bump this to v${ver+1}.</div>` : `<div class="versionline">New song — first save will become v1.</div>`}
+      ${ver > 0 ? `<div class="versionline">Currently <span class="ver">v${ver}</span>${s.updatedBy ? ' · last edited by '+escapeHtml(s.updatedBy) : ''}${s.updatedAt ? ' · '+timeAgo(s.updatedAt) : ''}. Update Version will bump this to v${ver+1}. Test saves without changing the version.</div>` : `<div class="versionline">New song — Update Version will save this as v1. Test saves a draft without creating a version yet.</div>`}
       <div class="versionline">ID: <span class="ver" id="idCopy" style="cursor:pointer; text-decoration:underline dotted;" title="Tap to copy">${s.id}</span> <span style="color:var(--muted);">(needed if updating this song from another conversation)</span></div>
       ${typeof s.prevBody === 'string' && s.prevBody !== s.body ? `<button class="btn blue" id="btnUndo" style="display:flex; align-items:center; justify-content:center; gap:8px;">${icon('undo',16)} Undo last edit (restore previous text)</button>` : ''}
       <div class="field"><label>Title</label><input id="fTitle" value="${escapeHtml(s.title)}" placeholder="Song title"></div>
@@ -1448,9 +1534,11 @@ function renderEditor(id){
       <div class="field"><label>Your name (shown when you share updates)</label><input id="fEditor" value="${escapeHtml(getEditorName())}" placeholder="e.g. Aia"></div>
       <div class="btnrow">
         <button class="btn ghost" id="btnCancel">Cancel</button>
-        <button class="btn primary" id="btnSave">Save</button>
+        <button class="btn blue" id="btnTest">Test</button>
       </div>
-      <button class="btn danger" id="btnDelete" style="margin-top:6px;">Delete song</button>
+      <button class="btn primary" id="btnUpdateVersion" style="margin-top:8px;">Update Version</button>
+      ${differsFromSnapshot(s) ? `<button class="btn blue" id="btnDiscardTest" style="margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px;">${icon('undo',16)} Discard test changes (back to v${s.version||0})</button>` : ''}
+      ${isNew ? '' : `<button class="btn danger" id="btnDelete" style="margin-top:6px;">Delete song</button>`}
     </div>
   `;
   app.querySelector('#btnBack').addEventListener('click', () => go('library'));
@@ -1471,27 +1559,56 @@ function renderEditor(id){
       catch(e){ showToast(s.id); }
     });
   }
-  app.querySelector('#btnSave').addEventListener('click', () => {
-    const newBody = app.querySelector('#fBody').value;
+  function readFieldsInto(target){
+    target.title = app.querySelector('#fTitle').value.trim() || 'Untitled';
+    target.artist = app.querySelector('#fArtist').value.trim();
+    target.aliases = app.querySelector('#fAliases').value.trim();
+    target.key = app.querySelector('#fKey').value.trim();
+    target.capo = app.querySelector('#fCapo').value.trim();
+    target.bpm = app.querySelector('#fBpm').value.trim();
+    target.timeSig = app.querySelector('#fTimeSig').value.trim() || '4/4';
+    target.duration = app.querySelector('#fDuration').value.trim();
+    target.body = app.querySelector('#fBody').value;
+  }
+  // Test: persists the current fields (so the change is really there to check
+  // in the performance view) but never touches version/updatedAt/updatedBy/
+  // prevBody/versionSnapshot — trial and error on lyrics/BPM/etc shouldn't
+  // create a new version every time.
+  app.querySelector('#btnTest').addEventListener('click', () => {
+    readFieldsInto(s);
+    setEditorName(app.querySelector('#fEditor').value.trim());
+    if(isNew){ songs.push(s); pendingNewSong = null; }
+    saveSongs(songs);
+    showToast('Saved for testing — version unchanged');
+    go('perform', s.id);
+  });
+  // Update Version: the real, shareable save — bumps version, records who/
+  // when, and snapshots the now-committed fields as the "last real version"
+  // that Discard test changes reverts to.
+  app.querySelector('#btnUpdateVersion').addEventListener('click', () => {
     s.prevBody = s.body || '';
-    s.title = app.querySelector('#fTitle').value.trim() || 'Untitled';
-    s.artist = app.querySelector('#fArtist').value.trim();
-    s.aliases = app.querySelector('#fAliases').value.trim();
-    s.key = app.querySelector('#fKey').value.trim();
-    s.capo = app.querySelector('#fCapo').value.trim();
-    s.bpm = app.querySelector('#fBpm').value.trim();
-    s.timeSig = app.querySelector('#fTimeSig').value.trim() || '4/4';
-    s.duration = app.querySelector('#fDuration').value.trim();
-    s.body = newBody;
+    readFieldsInto(s);
     const name = app.querySelector('#fEditor').value.trim();
     setEditorName(name);
     s.updatedBy = name;
     s.version = (s.version || 0) + 1;
     s.updatedAt = new Date().toISOString();
+    s.versionSnapshot = {title:s.title, artist:s.artist, aliases:s.aliases, key:s.key, capo:s.capo, bpm:s.bpm, timeSig:s.timeSig, duration:s.duration, body:s.body};
+    if(isNew){ songs.push(s); pendingNewSong = null; }
     saveSongs(songs);
     showToast(`Saved as v${s.version}`);
     go('library');
   });
+  const discardEl = app.querySelector('#btnDiscardTest');
+  if(discardEl){
+    discardEl.addEventListener('click', () => {
+      if(!confirm('Discard everything since the last saved version? This cannot be undone.')) return;
+      Object.assign(s, s.versionSnapshot);
+      saveSongs(songs);
+      showToast('Reverted to the last saved version');
+      renderEditor(id);
+    });
+  }
   const undoEl = app.querySelector('#btnUndo');
   if(undoEl){
     undoEl.addEventListener('click', () => {
@@ -1507,7 +1624,7 @@ function renderEditor(id){
       renderEditor(id);
     });
   }
-  app.querySelector('#btnDelete').addEventListener('click', () => {
+  app.querySelector('#btnDelete') && app.querySelector('#btnDelete').addEventListener('click', () => {
     if(!confirm('Delete this song? This cannot be undone.')) return;
     songs = songs.filter(x => x.id !== id);
     saveSongs(songs);
@@ -1567,13 +1684,57 @@ function startAutoscroll(container){
   };
   scrollRAF = requestAnimationFrame(step);
 }
+// Builds absolute scroll-position intervals from a song's marked segment
+// timeline, so autoscroll can pace each {Section} to its own real duration
+// instead of averaging the whole track. Only ever called when the timeline
+// actually changes (metadata load, loop toggle, a mark is edited) — NOT once
+// per animation frame, since it walks the DOM for each section's offsetTop.
+// Returns null (caller falls back to old whole-track linear pacing) unless
+// every section up to the end of the active range has a valid, strictly-
+// increasing marked time.
+// loopRange (optional): {start, end} segment indices — when set, restricts
+// the intervals to exactly that span (the loop's own scroll range), ending
+// right at segment `end`'s own mark rather than the track's actual end.
+function buildSegmentIntervals(container, sectionTags, timeline, duration, loopRange){
+  const n = sectionTags.length;
+  if(n === 0 || !Array.isArray(timeline)) return null;
+  const upTo = loopRange ? loopRange.end : n - 1;
+  for(let i=0; i<=upTo; i++){
+    if(!timeline[i] || typeof timeline[i].time !== 'number') return null;
+    if(i>0 && !(timeline[i].time > timeline[i-1].time)) return null;
+  }
+  let startSeg = 0, endSeg = n - 1, endIsExclusiveMark = false;
+  if(loopRange){
+    if(!(loopRange.start >= 0 && loopRange.end > loopRange.start && loopRange.end < n)) return null;
+    startSeg = loopRange.start; endSeg = loopRange.end; endIsExclusiveMark = true;
+  }
+  const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+  const points = [];
+  if(startSeg === 0) points.push({scrollTop:0, time:0});
+  for(let i=startSeg; i<=endSeg && !(endIsExclusiveMark && i===endSeg); i++){
+    points.push({scrollTop: sectionTags[i].offsetTop, time: timeline[i].time});
+  }
+  if(endIsExclusiveMark){
+    points.push({scrollTop: sectionTags[endSeg].offsetTop, time: timeline[endSeg].time});
+  } else {
+    points.push({scrollTop: maxScrollTop, time: (duration || timeline[n-1].time)});
+  }
+  if(points.length < 2) return null;
+  const intervals = [];
+  for(let i=0; i<points.length-1; i++){
+    intervals.push({scrollTop: points[i].scrollTop, scrollBottom: points[i+1].scrollTop, timeStart: points[i].time, timeEnd: points[i+1].time});
+  }
+  return intervals;
+}
 // Reference-track mode: scroll position is slaved to the audio clock, so the
 // lyrics land exactly at the end when the song ends, and pausing/stuttering
 // audio can never drift out of sync with the scroll.
-// getBounds() is called every frame and returns [rangeStart, rangeEnd] in
-// seconds — normally [0, duration], but while a practice loop is active it's
-// [loopStart, loopEnd] instead, so the lyrics snap back through the same
-// scroll range every repeat, exactly in step with the audio.
+// getBounds() is called every frame and returns {start, end, intervals} —
+// start/end are the old whole-range-in-seconds fallback (used verbatim when
+// intervals is null: no timeline, or an incomplete one, for this song), and
+// intervals (when present) is a precomputed buildSegmentIntervals() result —
+// precomputed by the caller, not rebuilt here, so this stays a cheap per-frame
+// lookup with no DOM work in the hot path.
 function startAudioScroll(container, audioEl, getBounds){
   stopAutoscroll();
   perf.scrolling = true;
@@ -1582,11 +1743,24 @@ function startAudioScroll(container, audioEl, getBounds){
   const distance = Math.max(0, container.scrollHeight - container.clientHeight - startPos);
   const step = () => {
     if(!perf.scrolling) return;
-    if(!perf.holdScroll && !audioEl.paused){
-      const [a, b] = getBounds ? getBounds() : [0, audioEl.duration || 0];
-      const dur = b - a;
-      const frac = dur > 0 ? Math.min(1, Math.max(0, (audioEl.currentTime - a) / dur)) : 0;
-      container.scrollTop = startPos + distance * frac;
+    if(!perf.holdScroll && !perf.refScrollPaused && !audioEl.paused){
+      const bounds = getBounds ? getBounds() : null;
+      const intervals = bounds && bounds.intervals;
+      if(intervals && intervals.length > 0){
+        const t = audioEl.currentTime;
+        let seg = intervals[0];
+        for(let i=0; i<intervals.length; i++){
+          if(t >= intervals[i].timeStart) seg = intervals[i]; else break;
+        }
+        const segDur = seg.timeEnd - seg.timeStart;
+        const frac = segDur > 0 ? Math.min(1, Math.max(0, (t - seg.timeStart) / segDur)) : 0;
+        container.scrollTop = seg.scrollTop + (seg.scrollBottom - seg.scrollTop) * frac;
+      } else {
+        const a = bounds ? bounds.start : 0, b = bounds ? bounds.end : (audioEl.duration || 0);
+        const dur = b - a;
+        const frac = dur > 0 ? Math.min(1, Math.max(0, (audioEl.currentTime - a) / dur)) : 0;
+        container.scrollTop = startPos + distance * frac;
+      }
     }
     scrollRAF = requestAnimationFrame(step);
   };
@@ -1623,14 +1797,9 @@ function playClick(accent){
 function triggerEdgeFlash(accent){
   const el = document.getElementById('edgeFlash');
   if(!el) return;
-  el.style.transition = 'none';
-  el.style.opacity = '1';
-  el.style.boxShadow = `inset 0 0 0 16px ${accent ? 'var(--magenta)' : 'var(--yellow)'}`;
-  requestAnimationFrame(() => {
-    el.style.transition = 'opacity 220ms ease-out, box-shadow 220ms ease-out';
-    el.style.opacity = '0';
-    el.style.boxShadow = 'inset 0 0 0 0 rgba(0,0,0,0)';
-  });
+  el.classList.remove('flash-yellow', 'flash-accent');
+  void el.offsetWidth; // force reflow so re-triggering mid-fade restarts the animation cleanly
+  el.classList.add(accent ? 'flash-accent' : 'flash-yellow');
 }
 function timeSigBeats(timeSig){
   const m = String(timeSig||'4/4').match(/^(\d+)/);
@@ -1640,10 +1809,16 @@ function timeSigBeats(timeSig){
 }
 function stopMetronome(){
   metro.running = false;
-  if(metro.intervalId) clearInterval(metro.intervalId);
-  metro.intervalId = null;
+  if(metro.timerId) clearTimeout(metro.timerId);
+  metro.timerId = null;
   metro.beatIndex = 0;
 }
+// setInterval reschedules relative to when the PREVIOUS callback actually
+// ran, so any main-thread jank (a paint, a GC pause) makes every later beat
+// drift later too — it never catches back up. This instead computes each
+// beat's absolute target time from a fixed start reference and corrects the
+// next setTimeout delay against the real clock every tick, so drift can't
+// accumulate — this is what "sync with the metronome" actually needed.
 function startMetronome(bpm, beats, dotEls){
   stopMetronome();
   const bpmNum = Number(bpm);
@@ -1651,14 +1826,19 @@ function startMetronome(bpm, beats, dotEls){
   metro.running = true;
   metro.beatIndex = 0;
   const periodMs = 60000 / bpmNum;
+  const start = performance.now();
+  let beatCount = 0;
   const tick = () => {
     dotEls.forEach((d,i) => d.classList.toggle('on', i === metro.beatIndex));
     if(metro.soundOn) playClick(metro.beatIndex === 0);
     if(metro.flashOn) triggerEdgeFlash(metro.beatIndex === 0);
     metro.beatIndex = (metro.beatIndex + 1) % beats;
+    beatCount++;
+    if(!metro.running) return;
+    const targetTime = start + beatCount * periodMs;
+    metro.timerId = setTimeout(tick, Math.max(0, targetTime - performance.now()));
   };
   tick();
-  metro.intervalId = setInterval(tick, periodMs);
 }
 
 function renderPerform(id){
@@ -1739,7 +1919,7 @@ function renderPerform(id){
         </div>
       </div>
       <button class="fsbtn" id="btnFS" title="Full screen">${icon('expand')}</button>
-      <input type="file" id="refAudioFile" accept="audio/*">
+      <input type="file" id="refAudioFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus,.wma">
     </div>
   `;
 
@@ -1832,18 +2012,45 @@ function renderPerform(id){
   const refTimeDur = app.querySelector('#refTimeDur');
   const refLoopLabel = app.querySelector('#refLoopLabel');
   const refLoopToggle = app.querySelector('#refLoopToggle');
-  // loopStart/loopEnd persist per song (prefs); "active" always resets to
-  // full-song mode on open/play, per the person's explicit choice.
-  let refLoop = {start:0, end:0, active:false};
+  // loopStartSeg/loopEndSeg (segment indices into parseSegments(s.body)) persist
+  // per song (prefs); "active" always resets to full-song mode on open/play,
+  // per the person's explicit choice. start/end are those segments' marked
+  // times in seconds, resolved once here and again whenever a pick changes —
+  // kept alongside the indices since the loop-restart check in `timeupdate`
+  // needs raw seconds, not segment indices.
+  let refLoop = {startSeg:undefined, endSeg:undefined, start:0, end:0, active:false};
   let refSeeking = false;
+  // Cached by refreshIntervals() — never rebuilt inside the per-frame
+  // getBounds() callback, since building it walks the DOM for each section's
+  // offsetTop. Rebuilt only when something that could change it happens:
+  // metadata just loaded, the loop toggle flipped, or a loop pick changed.
+  let cachedIntervals = null;
+  function hasCompleteTimeline(){
+    const segs = parseSegments(s.body || '');
+    const tags = lyricsWrap.querySelectorAll('.sectiontag');
+    if(segs.length === 0 || tags.length === 0) return false;
+    return !!buildSegmentIntervals(lyricsWrap, Array.from(tags), songPref(s.id).timeline, refAudio.el ? refAudio.el.duration : 0, null);
+  }
+  function refreshIntervals(){
+    if(!refAudio.el){ cachedIntervals = null; return; }
+    const tags = Array.from(lyricsWrap.querySelectorAll('.sectiontag'));
+    const timeline = songPref(s.id).timeline;
+    const loopRange = (refLoop.active && typeof refLoop.startSeg === 'number' && typeof refLoop.endSeg === 'number')
+      ? {start: refLoop.startSeg, end: refLoop.endSeg}
+      : null;
+    cachedIntervals = buildSegmentIntervals(lyricsWrap, tags, timeline, refAudio.el.duration, loopRange);
+  }
   function refIcon(){
     btnRef.innerHTML = refAudio.playing ? icon('pause') : icon('music');
     btnRef.classList.toggle('active', refAudio.playing);
   }
   function renderLoopLabel(){
-    const hasRange = refLoop.end > refLoop.start;
+    const segs = parseSegments(s.body || '');
+    const hasRange = typeof refLoop.startSeg === 'number' && typeof refLoop.endSeg === 'number' && refLoop.endSeg > refLoop.startSeg;
+    const nameA = hasRange && segs[refLoop.startSeg] ? segs[refLoop.startSeg].name : '';
+    const nameB = hasRange && segs[refLoop.endSeg] ? segs[refLoop.endSeg].name : '';
     refLoopLabel.textContent = hasRange
-      ? (refLoop.active ? 'Looping ' : 'Loop set ') + formatTime(refLoop.start) + '–' + formatTime(refLoop.end)
+      ? (refLoop.active ? 'Looping ' : 'Loop set ') + nameA + ' → ' + nameB
       : 'Full song';
     refLoopToggle.disabled = !hasRange;
     refLoopToggle.classList.toggle('active', refLoop.active);
@@ -1851,11 +2058,60 @@ function renderPerform(id){
   function stopRef(){
     stopRefAudio();
     stopAutoscroll();
+    perf.refScrollPaused = false;
+    cachedIntervals = null;
     btnMetroEl.disabled = false;
     btnMetroEl.style.opacity = '';
     refRow.classList.add('hidden');
     refIcon();
     playIcon.innerHTML = PLAY_SVG;
+  }
+  // Opens a small popup listing the song's marked segments so the person can
+  // pick loop start/end BY SECTION instead of scrubbing to an arbitrary spot —
+  // reuses the same .overlay/.resultCard popup shell as openRefOptions().
+  function openSegmentPicker(kind){
+    const segs = parseSegments(s.body || '');
+    const timeline = songPref(s.id).timeline || [];
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `<div class="resultCard"><h2>${kind === 'A' ? 'Loop start' : 'Loop end'}</h2>
+      <div class="timelineList" style="padding:0;">
+        ${segs.map((seg,i) => `
+        <div class="tlrow" data-idx="${i}">
+          <div class="tlmeta">
+            <div class="tlname">${escapeHtml(seg.name)}</div>
+            ${seg.guideLine ? `<div class="tlguide">${escapeHtml(seg.guideLine)}</div>` : ''}
+          </div>
+          <button type="button" class="btn ghost" data-act="pick">${timeline[i] ? formatTime(timeline[i].time) : '—'}</button>
+        </div>`).join('')}
+      </div>
+      <div class="btnrow" style="margin-top:8px;"><button class="btn ghost" id="segCancel">Cancel</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#segCancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelectorAll('.tlrow').forEach(row => {
+      row.querySelector('[data-act="pick"]').addEventListener('click', () => {
+        const i = Number(row.dataset.idx);
+        if(kind === 'A'){
+          refLoop.startSeg = i;
+          if(typeof refLoop.endSeg === 'number' && refLoop.endSeg <= i) refLoop.endSeg = undefined;
+        } else {
+          if(typeof refLoop.startSeg !== 'number' || i <= refLoop.startSeg){ showToast('Pick a segment after the loop start'); return; }
+          refLoop.endSeg = i;
+        }
+        songPref(s.id).loopStartSeg = refLoop.startSeg;
+        songPref(s.id).loopEndSeg = refLoop.endSeg;
+        refLoop.start = (typeof refLoop.startSeg === 'number' && timeline[refLoop.startSeg]) ? timeline[refLoop.startSeg].time : 0;
+        refLoop.end = (typeof refLoop.endSeg === 'number' && timeline[refLoop.endSeg]) ? timeline[refLoop.endSeg].time : 0;
+        songPref(s.id).loopStart = refLoop.start;
+        songPref(s.id).loopEnd = refLoop.end;
+        savePrefs();
+        renderLoopLabel();
+        refreshIntervals();
+        overlay.remove();
+      });
+    });
   }
   async function playRef(){
     let blob = null;
@@ -1866,11 +2122,19 @@ function renderPerform(id){
     metroRow.classList.add('hidden');
     btnMetroEl.disabled = true;
     btnMetroEl.style.opacity = '0.35';
+    perf.refScrollPaused = false;
     const url = URL.createObjectURL(blob);
     const el = new Audio(url);
     refAudio = {el, url, songId: s.id, playing: true};
     const p = songPref(s.id);
-    refLoop = {start: p.loopStart || 0, end: p.loopEnd || 0, active: false};
+    const timeline = Array.isArray(p.timeline) ? p.timeline : [];
+    refLoop = {
+      startSeg: typeof p.loopStartSeg === 'number' ? p.loopStartSeg : undefined,
+      endSeg: typeof p.loopEndSeg === 'number' ? p.loopEndSeg : undefined,
+      start: (typeof p.loopStartSeg === 'number' && timeline[p.loopStartSeg]) ? timeline[p.loopStartSeg].time : 0,
+      end: (typeof p.loopEndSeg === 'number' && timeline[p.loopEndSeg]) ? timeline[p.loopEndSeg].time : 0,
+      active: false
+    };
     renderLoopLabel();
     refRow.classList.remove('hidden');
     const watermark = app.querySelector('.crowWatermark');
@@ -1879,9 +2143,18 @@ function renderPerform(id){
       if(watermark) watermark.classList.remove('pulse');
       refSeek.max = el.duration || 0;
       refTimeDur.textContent = formatTime(el.duration || 0);
+      const complete = hasCompleteTimeline();
+      refSetABtn.disabled = !complete;
+      refSetBBtn.disabled = !complete;
+      refSetABtn.title = complete ? 'Pick the loop start segment' : 'Set up a timeline first (reference-track menu)';
+      refSetBBtn.title = complete ? 'Pick the loop end segment' : 'Set up a timeline first (reference-track menu)';
+      refreshIntervals();
       if(refAudio.el === el){
-        startAudioScroll(lyricsWrap, el, () =>
-          (refLoop.active && refLoop.end > refLoop.start) ? [refLoop.start, refLoop.end] : [0, el.duration || 0]);
+        startAudioScroll(lyricsWrap, el, () => ({
+          start: (refLoop.active && refLoop.end > refLoop.start) ? refLoop.start : 0,
+          end: (refLoop.active && refLoop.end > refLoop.start) ? refLoop.end : (el.duration || 0),
+          intervals: cachedIntervals
+        }));
       }
     });
     el.addEventListener('timeupdate', () => {
@@ -1907,27 +2180,16 @@ function renderPerform(id){
     if(refAudio.el) refAudio.el.currentTime = Number(refSeek.value);
     refSeeking = false;
   });
-  app.querySelector('#refSetA').addEventListener('click', () => {
-    if(!refAudio.el) return;
-    refLoop.start = refAudio.el.currentTime;
-    if(refLoop.end <= refLoop.start) refLoop.end = 0;
-    songPref(s.id).loopStart = refLoop.start;
-    songPref(s.id).loopEnd = refLoop.end;
-    savePrefs();
-    renderLoopLabel();
-  });
-  app.querySelector('#refSetB').addEventListener('click', () => {
-    if(!refAudio.el) return;
-    if(refAudio.el.currentTime <= refLoop.start){ showToast('Loop end must be after the start'); return; }
-    refLoop.end = refAudio.el.currentTime;
-    songPref(s.id).loopStart = refLoop.start;
-    songPref(s.id).loopEnd = refLoop.end;
-    savePrefs();
-    renderLoopLabel();
-  });
+  const refSetABtn = app.querySelector('#refSetA');
+  const refSetBBtn = app.querySelector('#refSetB');
+  refSetABtn.disabled = true;
+  refSetBBtn.disabled = true;
+  refSetABtn.addEventListener('click', () => { if(!refSetABtn.disabled) openSegmentPicker('A'); });
+  refSetBBtn.addEventListener('click', () => { if(!refSetBBtn.disabled) openSegmentPicker('B'); });
   refLoopToggle.addEventListener('click', () => {
     refLoop.active = !refLoop.active;
     renderLoopLabel();
+    refreshIntervals();
   });
   app.querySelector('#refManage').addEventListener('click', () => openRefOptions());
   let refLongPress = null, refPressConsumed = false;
@@ -1957,11 +2219,13 @@ function renderPerform(id){
   });
   function openRefOptions(){
     const linkedName = (prefs.songs && prefs.songs[s.id] && prefs.songs[s.id].audioName) || '';
+    const hasSegments = linkedName && parseSegments(s.body || '').length > 0;
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
     overlay.innerHTML = `<div class="resultCard"><h2>Reference track</h2>
       <div class="versionline" style="margin-bottom:12px;">${linkedName ? 'Linked: ' + escapeHtml(linkedName) : 'No track linked yet.'}</div>
       <div class="btnrow"><button class="btn primary" id="refChoose">${linkedName ? 'Choose a different file' : 'Choose a file'}</button></div>
+      ${hasSegments ? '<div class="btnrow" style="margin-top:8px;"><button class="btn blue" style="flex:1;" id="refTimeline">Timeline (mark section start times)</button></div>' : ''}
       ${linkedName ? '<div class="btnrow" style="margin-top:8px;"><button class="btn danger" style="flex:1;" id="refRemove">Remove track</button></div>' : ''}
       <div class="btnrow" style="margin-top:8px;"><button class="btn ghost" id="refCancel">Cancel</button></div>
     </div>`;
@@ -1969,6 +2233,8 @@ function renderPerform(id){
     overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
     overlay.querySelector('#refChoose').addEventListener('click', () => { overlay.remove(); refFileInput.click(); });
     overlay.querySelector('#refCancel').addEventListener('click', () => overlay.remove());
+    const tl = overlay.querySelector('#refTimeline');
+    if(tl) tl.addEventListener('click', () => { overlay.remove(); stopRef(); go('timeline', s.id); });
     const rm = overlay.querySelector('#refRemove');
     if(rm) rm.addEventListener('click', async () => {
       overlay.remove();
@@ -1977,6 +2243,9 @@ function renderPerform(id){
       delete songPref(s.id).audioName;
       delete songPref(s.id).loopStart;
       delete songPref(s.id).loopEnd;
+      delete songPref(s.id).loopStartSeg;
+      delete songPref(s.id).loopEndSeg;
+      delete songPref(s.id).timeline;
       savePrefs();
       showToast('Track removed');
     });
@@ -2031,7 +2300,15 @@ function renderPerform(id){
   }
 
   app.querySelector('#btnPlay').addEventListener('click', () => {
-    if(refAudio.playing){ stopRef(); return; }
+    // While a reference track is playing, this button no longer stops the
+    // track (that's the dedicated top-bar note-icon button's job) — it just
+    // pauses/resumes the lyrics FOLLOWING it, so the person can keep
+    // listening without the scroll racing ahead or lagging behind.
+    if(refAudio.playing){
+      perf.refScrollPaused = !perf.refScrollPaused;
+      playIcon.innerHTML = perf.refScrollPaused ? PLAY_SVG : PAUSE_SVG;
+      return;
+    }
     if(perf.scrolling){
       stopAutoscroll();
       playIcon.innerHTML = PLAY_SVG;
@@ -2095,6 +2372,122 @@ function renderPerform(id){
   if(inSetlist && route.setlistIndex === 0){
     showToast('Swipe left/right to move between songs in this set');
   }
+}
+
+/* ---------- TIMELINE EDIT ----------
+   Lets the person mark, per {Section} in the lyrics, the moment it starts in
+   the linked reference track — listening once, tapping each segment's row at
+   the right instant. Purely a prefs.songs[id] concern (never touches song
+   version); startAudioScroll()/the loop picker read the same timeline array
+   back out at playback time. */
+function tlRowHTML(seg, i, mark){
+  return `
+  <div class="tlrow" data-idx="${i}">
+    <div class="tlmeta">
+      <div class="tlname">${escapeHtml(seg.name)}</div>
+      ${seg.guideLine ? `<div class="tlguide">${escapeHtml(seg.guideLine)}</div>` : ''}
+    </div>
+    <button type="button" class="btn ${mark ? 'blue' : 'primary'}" data-act="mark">${mark ? formatTime(mark.time) : 'Mark here'}</button>
+  </div>`;
+}
+function renderTimeline(id){
+  const s = songs.find(x => x.id === id);
+  if(!s) return go('library');
+  const segs = parseSegments(s.body || '');
+  const p = songPref(id);
+  if(!Array.isArray(p.timeline)) p.timeline = [];
+
+  let el = null, url = null;
+  function cleanup(){
+    if(el){ try{ el.pause(); }catch(e){} }
+    if(url) URL.revokeObjectURL(url);
+  }
+
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="iconbtn back" id="btnBack">${icon('back')}</button>
+      <h1>Timeline</h1>
+      <div class="spacer"></div>
+    </div>
+    <div class="count">${escapeHtml(s.title)} &middot; tap a segment to mark it at the current position</div>
+    ${segs.length === 0 ? emptyStateHTML('No {Section} markers in this song\'s lyrics yet.<br>Add some in the editor first.') : `
+    <div class="refRow">
+      <div class="refSeekRow">
+        <span class="refTime" id="tlTimeCur">0:00</span>
+        <input type="range" id="tlSeek" min="0" max="100" step="0.1" value="0" disabled>
+        <span class="refTime" id="tlTimeDur">0:00</span>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="tlPlayPause" disabled>Play</button>
+      </div>
+    </div>
+    <div class="timelineList" id="timelineList">
+      ${segs.map((seg, i) => tlRowHTML(seg, i, p.timeline[i])).join('')}
+    </div>
+    `}
+  `;
+  app.querySelector('#btnBack').addEventListener('click', () => { cleanup(); go('perform', id); });
+  if(segs.length === 0) return;
+
+  const tlSeek = app.querySelector('#tlSeek');
+  const tlTimeCur = app.querySelector('#tlTimeCur');
+  const tlTimeDur = app.querySelector('#tlTimeDur');
+  const tlPlayPause = app.querySelector('#tlPlayPause');
+  let seeking = false;
+
+  function refreshRow(i){
+    const btn = app.querySelector(`.tlrow[data-idx="${i}"] .btn`);
+    if(!btn) return;
+    const mark = p.timeline[i];
+    btn.textContent = mark ? formatTime(mark.time) : 'Mark here';
+    btn.classList.toggle('blue', !!mark);
+    btn.classList.toggle('primary', !mark);
+  }
+
+  (async () => {
+    let blob = null;
+    try{ blob = await audioGet(id); }catch(e){}
+    if(!blob){ showToast('No reference track linked yet'); return; }
+    url = URL.createObjectURL(blob);
+    el = new Audio(url);
+    el.addEventListener('loadedmetadata', () => {
+      tlSeek.max = el.duration || 0;
+      tlSeek.disabled = false;
+      tlPlayPause.disabled = false;
+      tlTimeDur.textContent = formatTime(el.duration || 0);
+    });
+    el.addEventListener('timeupdate', () => {
+      if(seeking) return;
+      tlSeek.value = el.currentTime;
+      tlTimeCur.textContent = formatTime(el.currentTime);
+    });
+    el.addEventListener('play', () => { tlPlayPause.textContent = 'Pause'; });
+    el.addEventListener('pause', () => { tlPlayPause.textContent = 'Play'; });
+    el.addEventListener('ended', () => { tlPlayPause.textContent = 'Play'; });
+  })();
+
+  tlSeek.addEventListener('input', () => {
+    seeking = true;
+    tlTimeCur.textContent = formatTime(Number(tlSeek.value));
+  });
+  tlSeek.addEventListener('change', () => {
+    if(el) el.currentTime = Number(tlSeek.value);
+    seeking = false;
+  });
+  tlPlayPause.addEventListener('click', () => {
+    if(!el) return;
+    if(el.paused) el.play(); else el.pause();
+  });
+  app.querySelectorAll('.tlrow').forEach(row => {
+    row.querySelector('[data-act="mark"]').addEventListener('click', () => {
+      if(!el) return;
+      const i = Number(row.dataset.idx);
+      p.timeline[i] = {time: el.currentTime};
+      savePrefs();
+      refreshRow(i);
+      showToast(`${segs[i].name}: marked at ${formatTime(el.currentTime)}`);
+    });
+  });
 }
 
 function transposeKeyLabel(key, semitone){

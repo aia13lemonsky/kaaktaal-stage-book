@@ -36,11 +36,12 @@ doubt, favor the option that is less likely to break on stage over the one that 
   - `stagebook_metro_flash` — '1' or '0', full-screen edge-flash metronome on/off
   - `stagebook_prefs_v1` — **personal, per-phone prefs, never shared and never version-bumping**:
     per-song default scroll speed (`secPerLine`) and key offset (`semitone`), per-song color tags,
-    linked reference-track names (`audioName`) plus their A-B practice loop points in seconds
-    (`loopStart`/`loopEnd` — NOT whether looping is active; that always resets to off, see
-    Features), custom library order (`songOrder`), and the cached notice banner (`noticeCache`).
-    Everything in here is deliberately outside the song schema so it can't churn versions or leak
-    into share files.
+    linked reference-track names (`audioName`), a segment timeline (`timeline`, array of `{time}` in
+    seconds, positionally parallel to `parseSegments(s.body)`) and A-B practice loop points as
+    segment indices (`loopStartSeg`/`loopEndSeg`, resolved to seconds via `timeline` — NOT whether
+    looping is active; that always resets to off, see Features), custom library order
+    (`songOrder`), and the cached notice banner (`noticeCache`). Everything in here is deliberately
+    outside the song schema so it can't churn versions or leak into share files.
   - Plus one IndexedDB database, `stagebook-audio` (store `tracks`, keyed by song id) — reference
     audio blobs are far too large for localStorage. This is the only IndexedDB use; don't add more
     without cause.
@@ -77,6 +78,10 @@ doubt, favor the option that is less likely to break on stage over the one that 
   of the documented/shared schema: `shareOrDownload()` strips it before writing any exported/shared
   JSON, so it never appears in files handed to bandmates or produced by the song-conversion project.
   Don't add it when hand-authoring song JSON.
+- Likewise **`versionSnapshot`** (`{title, artist, aliases, key, capo, bpm, timeSig, duration, body}`)
+  — a full-field snapshot taken at the last real "Update Version," used by "Discard test changes" to
+  throw away any Test-only edits since. Also stripped by `shareOrDownload()`, also not part of the
+  shared schema, also not something to hand-author.
 
 `body` uses a three-bracket notation, parsed by `tokenizeLine()`/`renderBody()`:
 
@@ -179,6 +184,21 @@ photos/docs, which depends on this exact syntax staying stable).
 - **One-step undo per song** (editor) — saving stashes the pre-save body into `s.prevBody` (see
   schema note above). "Undo last edit" swaps `body`/`prevBody`, bumps version, and saves through the
   exact same path as any other save — it doesn't special-case the version-sharing logic at all.
+- **Test / Update Version / Discard test changes** (editor) — the old single "Save" button split in
+  two because trial-and-error tweaks (does this line wrap right, is the BPM close enough) were
+  bumping the shared version on every little adjustment, which is noisy for anyone else re-importing
+  the song. **Test** persists the current fields (`readFieldsInto()`) so the change is really there
+  to check in the performance view, but never touches `version`/`updatedAt`/`updatedBy`/`prevBody`/
+  `versionSnapshot` — then jumps straight to `go('perform', id)`. **Update Version** does everything
+  Test does plus the real version bump, and snapshots the now-committed fields into
+  `s.versionSnapshot` (title/artist/aliases/key/capo/bpm/timeSig/duration/body). **Discard test
+  changes** (`differsFromSnapshot()`-gated, same conditional-visibility pattern as "Undo last edit")
+  restores every field from `s.versionSnapshot`, persists, no version change — the way back out if a
+  round of testing didn't work out. This is a distinct field/mechanism from `prevBody` above: that
+  one is a one-step body-only undo tied to a real version bump; `versionSnapshot` is "everything as
+  of the last real version," for throwing away any number of Test iterations since. A brand-new song
+  (never version-bumped) has no `versionSnapshot` yet, so Discard doesn't show until at least one
+  Update Version has happened.
 - **Set-length estimate** — optional `duration` field per song (`"mm:ss"` or plain minutes), summed
   and shown as "~NN min" at the top of setlist detail (`parseDurationToSeconds`). Skips untimed songs.
 - **Section color coding** (`sectionColor`) — each `{Section}` label's left border is colored by
@@ -205,17 +225,48 @@ photos/docs, which depends on this exact syntax staying stable).
   caps — don't reintroduce a 5-song/10MB/mp3-only rule without being asked; it was deliberately
   removed. While playing: metronome is stopped and disabled. Linking/changing a track touches only
   `prefs.songs[id].audioName` (+ loop fields below) — never the song object, never the version.
-- **A-B practice loop** (`refRow`, shown while a reference track is playing) — a seek scrubber
-  (`refSeek`, drag-to-preview via `input`, actually seeks on `change`) plus "A"/"B" buttons that
-  capture the current playback position as loop start/end. Once both are set (`end > start`), the
-  LOOP toggle enables; toggling it on/off is the only thing that flips `refLoop.active` — always
-  resets to **off** (full-song) each time the track is (re)started, even though the A/B points
-  themselves persist per song in prefs indefinitely. The audio jump-back is a plain `timeupdate`
-  check (`currentTime >= loopEnd` → `currentTime = loopStart`); scroll is kept in sync by
-  `startAudioScroll`'s `getBounds()` callback switching from `[0, duration]` to `[loopStart,
-  loopEnd]` while active, so **the lyrics snap back through the same scroll range every repeat** —
-  this was an explicit choice (the person considered pausing scroll during a loop and rejected it).
-  Removing the track also clears its loop points.
+- **Segment timeline** (`parseSegments()`, `renderTimeline()`/`go('timeline', id)`, reached via the
+  reference-track menu's "Timeline" button, only shown once a track is linked and the lyrics have at
+  least one `{Section}` marker) — the person listens to their reference track once and taps each
+  segment's row at the moment it starts, capturing the playhead into
+  `prefs.songs[id].timeline[i] = {time}`, positionally parallel to `parseSegments(s.body)`'s
+  section list (index-based, not name-based, so repeat section names like three "Chorus"es aren't
+  ambiguous). Re-tappable any time to fine-tune. Never touches song version — purely
+  `prefs.songs[id]`, same tier as `audioName`/loop fields. If the lyrics' section structure changes
+  later, old indices can go stale; the screen always shows current values next to the current
+  section list so a mismatch is visible, not silently wrong.
+- **Segment-paced autoscroll** (`buildSegmentIntervals()` + `startAudioScroll()`) — with a complete
+  timeline (every section has a valid, increasing marked time), autoscroll paces each section's
+  lyrics to that section's own measured duration instead of averaging the whole track, by mapping
+  `audioEl.currentTime` against **absolute scroll anchors** taken from each `.sectiontag`'s real
+  `offsetTop` (not a naive whole-distance fraction). `buildSegmentIntervals()` is only ever called
+  when something that could change it happens (metadata load, loop toggle, a mark edited) — **never
+  inside the per-frame RAF loop**, since it walks the DOM for each section's `offsetTop`; the loop
+  itself just reads a cached array. Falls back verbatim to the old whole-track linear behavior for
+  any song with no timeline or an incomplete one — every existing song keeps working unchanged.
+- **A-B practice loop, segment-snapped** (`refRow`, shown while a reference track is playing) — once
+  a song has a complete timeline, "A"/"B" open a segment-picker popup (reusing the `.overlay`/
+  `.resultCard` shell) instead of scrubbing to an arbitrary spot; picks are stored as segment
+  indices (`loopStartSeg`/`loopEndSeg`), resolved to seconds via the timeline so refining a mark
+  later updates the loop without re-picking it. **No timeline → A/B stay disabled** with a "set up a
+  timeline first" hint — there is deliberately no free-scrub fallback once this feature is in play,
+  a confirmed decision, not an oversight. `refLoopLabel` shows segment names ("Looping Verse 1 →
+  Instrumental Break"), not raw timestamps. While looping, the fed-in interval list is sliced to
+  exactly `loopStartSeg..loopEndSeg`, so the lyric view shows the start segment at the very top of
+  the viewport (scrollTop == that section's own `offsetTop`) and scrolls only through the segments
+  in between, ending right at the end segment's own mark, then snapping back on every repeat — never
+  drifting into the end segment's own content. The audio jump-back itself is still the same plain
+  `timeupdate` check (`currentTime >= loopEnd` → `currentTime = loopStart`) this always was. Toggling
+  LOOP on/off always resets to **off** (full-song) each time the track is (re)started, even though
+  the picks persist per song in prefs indefinitely. Removing the track clears the timeline and all
+  loop fields.
+- **Pausing autoscroll without stopping the track** (`perf.refScrollPaused`) — the stage's own
+  play/pause button (`#btnPlay`, ctrlbar) no longer stops a playing reference track when tapped
+  (that's the dedicated top-bar note-icon button's job); instead it toggles whether the lyrics keep
+  *following* the track, letting someone keep listening without the scroll racing ahead or lagging.
+  `playRef()` resets this to "following" every time a track starts, per spec. With no reference track
+  active at all, `#btnPlay`/the speed slider/constant-pace scroll are completely untouched by any of
+  this — same behavior as before this feature existed.
 - **Notice banner** (`notice.json` + `refreshNotice`) — a pastel-red banner above the library
   search box showing e.g. "Next: Friday 7pm rehearsal" with an optional Open-calendar button. The
   single source of truth is **`notice.json` in the repo root**: edit `text`/`link` on github.com

@@ -287,7 +287,7 @@
   .lyricsArea{ flex:1; min-height:0; display:flex; }
   .scrollProgress{ width:4px; flex-shrink:0; background:var(--line); position:relative; }
   .scrollProgress .fill{ position:absolute; top:0; left:0; right:0; height:0%; background:var(--yellow); }
-  .lyricsWrap{ flex:1; min-width:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px 40vh; position:relative; z-index:2; }
+  .lyricsWrap{ flex:1; min-width:0; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px 40vh; position:relative; z-index:2; }
   .crowWatermark{
     position:fixed; right:-10px; bottom:calc(4vh + env(safe-area-inset-bottom));
     width:46vw; max-width:280px; opacity:0.1; pointer-events:none; z-index:1;
@@ -923,11 +923,16 @@ function sectionColor(name){
 // the segment-timeline feature (marking start times, segment-paced autoscroll,
 // segment-snapped looping) — walks the text the same way renderBody() does, so
 // this list lines up positionally with the .sectiontag elements renderBody()
-// actually renders, by construction.
+// actually renders, by construction. Always appends one implicit trailing
+// "Song End" entry (unless the lyrics have no content at all) representing
+// the position of the literal last rendered line — not necessarily inside any
+// {Section} — so the ending of a full playthrough has a real, user-markable
+// anchor to center on, the same way every other segment does.
 function parseSegments(body){
   const lines = (body || '').split('\n');
   const out = [];
   let pending = null;
+  let lastContentLine = '';
   for(const rawLine of lines){
     const line = rawLine.trim();
     if(line === '') continue;
@@ -937,15 +942,13 @@ function parseSegments(body){
       out.push(pending);
       continue;
     }
-    if(pending && !pending.guideLine){
-      const segs = tokenizeLine(rawLine);
-      const isNoteOnly = segs.length === 1 && segs[0].type === 'note';
-      if(!isNoteOnly){
-        const text = segs.filter(seg => seg.type !== 'note').map(seg => seg.text).join('').trim();
-        if(text) pending.guideLine = text;
-      }
-    }
+    const segs = tokenizeLine(rawLine);
+    const isNoteOnly = segs.length === 1 && segs[0].type === 'note';
+    const text = segs.filter(seg => seg.type !== 'note').map(seg => seg.text).join('').trim();
+    if(pending && !pending.guideLine && !isNoteOnly && text) pending.guideLine = text;
+    lastContentLine = text || segs.map(seg => seg.text).join('').trim() || lastContentLine;
   }
+  if(lastContentLine) out.push({name: 'Song End', guideLine: lastContentLine, isSongEnd: true});
   return out;
 }
 function renderBody(body, semitoneShift){
@@ -1217,6 +1220,7 @@ function renderSelectBar(searchBox){
     <button class="btn ghost" id="btnCancelSel">Cancel</button>
     <button class="btn ghost" id="btnReorder">Reorder</button>
     <button class="btn blue" id="btnShareSel">Share (${selectedIds.size})</button>
+    <button class="btn danger" id="btnDeleteSel">Delete</button>
   `;
   document.body.appendChild(bar);
   bar.querySelector('#btnCancelSel').addEventListener('click', () => { selectMode=false; selectedIds.clear(); renderLibrary(); });
@@ -1225,6 +1229,16 @@ function renderSelectBar(searchBox){
     if(selectedIds.size === 0){ showToast('Select at least one song first'); return; }
     const picked = songs.filter(s => selectedIds.has(s.id));
     shareOrDownload(picked, `stagebook-share-${Date.now()}.json`);
+  });
+  bar.querySelector('#btnDeleteSel').addEventListener('click', () => {
+    if(selectedIds.size === 0){ showToast('Select at least one song first'); return; }
+    if(!confirm(`Delete ${selectedIds.size} song${selectedIds.size===1?'':'s'}? This cannot be undone.`)) return;
+    songs = songs.filter(s => !selectedIds.has(s.id));
+    saveSongs(songs);
+    selectMode = false;
+    selectedIds.clear();
+    showToast('Deleted');
+    renderLibrary();
   });
 }
 
@@ -1684,47 +1698,100 @@ function startAutoscroll(container){
   };
   scrollRAF = requestAnimationFrame(step);
 }
+// Gathers, in the same order parseSegments() lists them, one DOM anchor per
+// {Section} tag plus a final synthetic one for parseSegments()'s implicit
+// trailing "Song End" entry (the actual last rendered lyric/chord line).
+function getSegmentDomAnchors(container){
+  const tags = Array.from(container.querySelectorAll('.sectiontag'));
+  const contentEls = container.querySelectorAll('.line, .noteline');
+  const anchors = tags.map(t => ({el:t, isSongEnd:false}));
+  if(contentEls.length > 0) anchors.push({el: contentEls[contentEls.length-1], isSongEnd:true});
+  return anchors;
+}
 // Builds absolute scroll-position intervals from a song's marked segment
 // timeline, so autoscroll can pace each {Section} to its own real duration
 // instead of averaging the whole track. Only ever called when the timeline
 // actually changes (metadata load, loop toggle, a mark is edited) — NOT once
-// per animation frame, since it walks the DOM for each section's offsetTop.
+// per animation frame, since it walks the DOM for each anchor's offsetTop.
 // Returns null (caller falls back to old whole-track linear pacing) unless
-// every section up to the end of the active range has a valid, strictly-
-// increasing marked time.
+// every anchor actually used (see below) has a valid, strictly-increasing
+// marked time.
+// centerOffset: subtracted from every anchor's raw scrollTop so a segment's
+// own heading (or, for the trailing Song End anchor, the bottom edge of the
+// last line) lands at vertical CENTER of the viewport when reached, instead
+// of the very top — pass container.clientHeight/2 for "true center"; the
+// caller is expected to have already given the container matching top/bottom
+// scroll room so this is actually reachable at the very start/end of the
+// range (see applyCenterSpacers()).
 // loopRange (optional): {start, end} segment indices — when set, restricts
-// the intervals to exactly that span (the loop's own scroll range), ending
-// right at segment `end`'s own mark rather than the track's actual end.
-function buildSegmentIntervals(container, sectionTags, timeline, duration, loopRange){
-  const n = sectionTags.length;
+// the intervals to exactly that span, ending right at segment `end`'s own
+// mark (used only as a boundary, never played as its own content) rather
+// than running to the last anchor.
+function buildSegmentIntervals(container, anchors, timeline, centerOffset, loopRange){
+  const n = anchors.length;
   if(n === 0 || !Array.isArray(timeline)) return null;
-  const upTo = loopRange ? loopRange.end : n - 1;
-  for(let i=0; i<=upTo; i++){
+  const startSeg = loopRange ? loopRange.start : 0;
+  const endSeg = loopRange ? loopRange.end : n - 1;
+  if(!(startSeg >= 0 && endSeg > startSeg && endSeg < n)) return null;
+  for(let i=startSeg; i<=endSeg; i++){
     if(!timeline[i] || typeof timeline[i].time !== 'number') return null;
-    if(i>0 && !(timeline[i].time > timeline[i-1].time)) return null;
+    if(i>startSeg && !(timeline[i].time > timeline[i-1].time)) return null;
   }
-  let startSeg = 0, endSeg = n - 1, endIsExclusiveMark = false;
-  if(loopRange){
-    if(!(loopRange.start >= 0 && loopRange.end > loopRange.start && loopRange.end < n)) return null;
-    startSeg = loopRange.start; endSeg = loopRange.end; endIsExclusiveMark = true;
+  function anchorScrollTop(i){
+    const a = anchors[i];
+    const raw = a.isSongEnd ? (a.el.offsetTop + a.el.offsetHeight) : a.el.offsetTop;
+    return raw - centerOffset;
   }
-  const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
   const points = [];
   if(startSeg === 0) points.push({scrollTop:0, time:0});
-  for(let i=startSeg; i<=endSeg && !(endIsExclusiveMark && i===endSeg); i++){
-    points.push({scrollTop: sectionTags[i].offsetTop, time: timeline[i].time});
+  for(let i=startSeg; i<endSeg; i++){
+    points.push({scrollTop: anchorScrollTop(i), time: timeline[i].time});
   }
-  if(endIsExclusiveMark){
-    points.push({scrollTop: sectionTags[endSeg].offsetTop, time: timeline[endSeg].time});
-  } else {
-    points.push({scrollTop: maxScrollTop, time: (duration || timeline[n-1].time)});
-  }
+  points.push({scrollTop: anchorScrollTop(endSeg), time: timeline[endSeg].time});
   if(points.length < 2) return null;
   const intervals = [];
   for(let i=0; i<points.length-1; i++){
     intervals.push({scrollTop: points[i].scrollTop, scrollBottom: points[i+1].scrollTop, timeStart: points[i].time, timeEnd: points[i+1].time});
   }
   return intervals;
+}
+// Adds/removes scrollable SPACER ELEMENTS (not padding) before/after the
+// lyrics content, making centered anchors actually reachable: without extra
+// room, scrollTop can't go negative, so the very first anchor (which wants a
+// negative scrollTop to land at center) would just clamp to 0 and appear too
+// high; without room past the natural end, the browser's real max scrollTop
+// can't be pushed past "last content flush with the bottom edge," so the
+// final anchor could never rise to center either.
+// Deliberately spacer elements INSIDE the scrollable content, not CSS
+// padding on the container itself — padding is part of an element's own box
+// and forces it to grow if the padding doesn't fit inside the flex height
+// the layout assigned it (which it doesn't: half a viewport top AND bottom,
+// on top of the lyrics view's already-substantial existing padding, does not
+// fit in the ~549px .lyricsArea gets on a typical phone). A spacer is just
+// ordinary scrollable content — it can be arbitrarily tall without the
+// container's own clientHeight ever growing to accommodate it, which is
+// exactly the point of overflow-y:auto in the first place.
+function applyCenterSpacers(lyricsWrap, on){
+  let top = lyricsWrap.querySelector(':scope > .centerSpacer.top');
+  let bottom = lyricsWrap.querySelector(':scope > .centerSpacer.bottom');
+  if(on){
+    const H = lyricsWrap.clientHeight / 2;
+    if(!top){
+      top = document.createElement('div');
+      top.className = 'centerSpacer top';
+      lyricsWrap.insertBefore(top, lyricsWrap.firstChild);
+    }
+    if(!bottom){
+      bottom = document.createElement('div');
+      bottom.className = 'centerSpacer bottom';
+      lyricsWrap.appendChild(bottom);
+    }
+    top.style.height = H + 'px';
+    bottom.style.height = H + 'px';
+  } else {
+    if(top) top.remove();
+    if(bottom) bottom.remove();
+  }
 }
 // Reference-track mode: scroll position is slaved to the audio clock, so the
 // lyrics land exactly at the end when the song ends, and pausing/stuttering
@@ -2026,19 +2093,27 @@ function renderPerform(id){
   // metadata just loaded, the loop toggle flipped, or a loop pick changed.
   let cachedIntervals = null;
   function hasCompleteTimeline(){
-    const segs = parseSegments(s.body || '');
-    const tags = lyricsWrap.querySelectorAll('.sectiontag');
-    if(segs.length === 0 || tags.length === 0) return false;
-    return !!buildSegmentIntervals(lyricsWrap, Array.from(tags), songPref(s.id).timeline, refAudio.el ? refAudio.el.duration : 0, null);
+    const anchors = getSegmentDomAnchors(lyricsWrap);
+    if(anchors.length === 0) return false;
+    return !!buildSegmentIntervals(lyricsWrap, anchors, songPref(s.id).timeline, 0, null);
   }
+  // Applies the extra top/bottom scroll room speculatively (cheap: only ever
+  // runs on discrete events like metadata load or a loop toggle, never per
+  // frame), then measures anchors/builds intervals with the spacers' effect
+  // on offsetTop already reflected, since a segment landing at true vertical
+  // center depends on it. Reverts the spacers if the timeline turns out
+  // incomplete, so a song without one keeps looking exactly as before.
   function refreshIntervals(){
-    if(!refAudio.el){ cachedIntervals = null; return; }
-    const tags = Array.from(lyricsWrap.querySelectorAll('.sectiontag'));
+    if(!refAudio.el){ cachedIntervals = null; applyCenterSpacers(lyricsWrap, false); return; }
+    applyCenterSpacers(lyricsWrap, true);
+    const anchors = getSegmentDomAnchors(lyricsWrap);
     const timeline = songPref(s.id).timeline;
     const loopRange = (refLoop.active && typeof refLoop.startSeg === 'number' && typeof refLoop.endSeg === 'number')
       ? {start: refLoop.startSeg, end: refLoop.endSeg}
       : null;
-    cachedIntervals = buildSegmentIntervals(lyricsWrap, tags, timeline, refAudio.el.duration, loopRange);
+    const centerOffset = lyricsWrap.clientHeight / 2;
+    cachedIntervals = buildSegmentIntervals(lyricsWrap, anchors, timeline, centerOffset, loopRange);
+    if(!cachedIntervals) applyCenterSpacers(lyricsWrap, false);
   }
   function refIcon(){
     btnRef.innerHTML = refAudio.playing ? icon('pause') : icon('music');
@@ -2060,6 +2135,7 @@ function renderPerform(id){
     stopAutoscroll();
     perf.refScrollPaused = false;
     cachedIntervals = null;
+    applyCenterSpacers(lyricsWrap, false);
     btnMetroEl.disabled = false;
     btnMetroEl.style.opacity = '';
     refRow.classList.add('hidden');
@@ -2149,6 +2225,12 @@ function renderPerform(id){
       refSetABtn.title = complete ? 'Pick the loop start segment' : 'Set up a timeline first (reference-track menu)';
       refSetBBtn.title = complete ? 'Pick the loop end segment' : 'Set up a timeline first (reference-track menu)';
       refreshIntervals();
+      // clientHeight right as metadata loads can occasionally be measured
+      // before the surrounding layout (ref row becoming visible, dvh units
+      // settling) is fully done growing/shrinking — one follow-up refresh a
+      // beat later re-syncs the centering padding to the settled size if it
+      // drifted; harmless/idempotent if it didn't.
+      setTimeout(() => { if(refAudio.el === el) refreshIntervals(); }, 250);
       if(refAudio.el === el){
         startAudioScroll(lyricsWrap, el, () => ({
           start: (refLoop.active && refLoop.end > refLoop.start) ? refLoop.start : 0,
@@ -2289,6 +2371,10 @@ function renderPerform(id){
     keyVal.textContent = transposeKeyLabel(s.key, perf.semitone);
     attachChordTaps();
     updateScrollProgress();
+    // Replacing innerHTML wipes out the centering spacers (if a reference
+    // track is active) along with everything else — rebuild them and the
+    // scroll anchors they depend on against the fresh DOM.
+    refreshIntervals();
   }
 
   app.querySelector('#fontUp').addEventListener('click', () => { perf.fontScale = Math.min(2, perf.fontScale + 0.1); applyFont(); });
@@ -2420,6 +2506,9 @@ function renderTimeline(id){
       <div class="btnrow">
         <button class="btn primary" id="tlPlayPause" disabled>Play</button>
       </div>
+      <div class="btnrow" style="margin-top:6px;">
+        <button class="btn blue" id="btnTlDone">Done</button>
+      </div>
     </div>
     <div class="timelineList" id="timelineList">
       ${segs.map((seg, i) => tlRowHTML(seg, i, p.timeline[i])).join('')}
@@ -2428,6 +2517,10 @@ function renderTimeline(id){
   `;
   app.querySelector('#btnBack').addEventListener('click', () => { cleanup(); go('perform', id); });
   if(segs.length === 0) return;
+  // Marks already save instantly per tap; Done is just the clear "I'm
+  // finished, take me back to the lyrics" exit — to edit again later, long-
+  // press the reference-track icon and pick Timeline from there.
+  app.querySelector('#btnTlDone').addEventListener('click', () => { cleanup(); go('perform', id); });
 
   const tlSeek = app.querySelector('#tlSeek');
   const tlTimeCur = app.querySelector('#tlTimeCur');

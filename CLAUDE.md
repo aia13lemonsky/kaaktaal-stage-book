@@ -226,24 +226,41 @@ photos/docs, which depends on this exact syntax staying stable).
   removed. While playing: metronome is stopped and disabled. Linking/changing a track touches only
   `prefs.songs[id].audioName` (+ loop fields below) — never the song object, never the version.
 - **Segment timeline** (`parseSegments()`, `renderTimeline()`/`go('timeline', id)`, reached via the
-  reference-track menu's "Timeline" button, only shown once a track is linked and the lyrics have at
-  least one `{Section}` marker) — the person listens to their reference track once and taps each
-  segment's row at the moment it starts, capturing the playhead into
-  `prefs.songs[id].timeline[i] = {time}`, positionally parallel to `parseSegments(s.body)`'s
-  section list (index-based, not name-based, so repeat section names like three "Chorus"es aren't
-  ambiguous). Re-tappable any time to fine-tune. Never touches song version — purely
-  `prefs.songs[id]`, same tier as `audioName`/loop fields. If the lyrics' section structure changes
-  later, old indices can go stale; the screen always shows current values next to the current
-  section list so a mismatch is visible, not silently wrong.
-- **Segment-paced autoscroll** (`buildSegmentIntervals()` + `startAudioScroll()`) — with a complete
-  timeline (every section has a valid, increasing marked time), autoscroll paces each section's
-  lyrics to that section's own measured duration instead of averaging the whole track, by mapping
+  reference-track menu's "Timeline" button, only shown once a track is linked and there's at least
+  one lyric line) — the person listens to their reference track once and taps each segment's row at
+  the moment it starts, capturing the playhead into `prefs.songs[id].timeline[i] = {time}`,
+  positionally parallel to `parseSegments(s.body)`'s section list (index-based, not name-based, so
+  repeat section names like three "Chorus"es aren't ambiguous). Re-tappable any time to fine-tune.
+  Never touches song version — purely `prefs.songs[id]`, same tier as `audioName`/loop fields. If the
+  lyrics' section structure changes later, old indices can go stale; the screen always shows current
+  values next to the current section list so a mismatch is visible, not silently wrong. A **Done**
+  button (`#btnTlDone`) exits straight back to the performance view — marks already save instantly
+  per tap, so there's nothing to explicitly "save"; to come back and re-mark later, long-press the
+  reference-track icon and pick Timeline again from the menu (that's the only entry point, by design).
+  `parseSegments()` always appends one implicit trailing **"Song End"** entry — the actual last
+  rendered lyric/chord line, not necessarily inside any `{Section}` — so a full playthrough's ending
+  has a real, user-markable anchor to center on, the same way every other segment does. A "complete"
+  timeline now means every real section AND Song End all have valid, increasing marked times.
+- **Segment-paced, vertically-CENTERED autoscroll** (`buildSegmentIntervals()` + `startAudioScroll()`
+  + `applyCenterSpacers()`) — with a complete timeline, autoscroll paces each section's lyrics to
+  that section's own measured duration instead of averaging the whole track, by mapping
   `audioEl.currentTime` against **absolute scroll anchors** taken from each `.sectiontag`'s real
-  `offsetTop` (not a naive whole-distance fraction). `buildSegmentIntervals()` is only ever called
-  when something that could change it happens (metadata load, loop toggle, a mark edited) — **never
-  inside the per-frame RAF loop**, since it walks the DOM for each section's `offsetTop`; the loop
-  itself just reads a cached array. Falls back verbatim to the old whole-track linear behavior for
-  any song with no timeline or an incomplete one — every existing song keeps working unchanged.
+  `offsetTop` (Song End anchor uses its line's bottom edge instead). Anchors land at **vertical
+  center of the viewport**, not the top — `centerOffset` (`container.clientHeight/2`) is subtracted
+  from every anchor's raw scrollTop, so a section arrives with room to see what's coming before and
+  after it, per explicit request. This requires genuine extra scrollable room before the first line
+  and after the last: `applyCenterSpacers()` inserts actual **spacer `<div>` elements** as
+  `.lyricsWrap`'s first/last children (not CSS padding — padding is part of an element's own box and
+  will force it to grow if the padding doesn't fit inside the flex height layout assigned it, which a
+  half-viewport top AND bottom easily doesn't; a spacer is just ordinary scrollable content and can be
+  arbitrarily tall without the container's own `clientHeight` ever growing to compensate — this was a
+  real bug hit and fixed during development, along with `.lyricsWrap` needing `min-height:0` for the
+  same underlying flex-sizing reason). `buildSegmentIntervals()`/`applyCenterSpacers()` are only ever
+  called when something that could change them happens (metadata load, loop toggle, a mark edited, a
+  key-transpose regenerating the DOM) — **never inside the per-frame RAF loop**, since they walk the
+  DOM; the loop itself just reads a cached array. Falls back verbatim to the old whole-track linear,
+  top-anchored, unpadded behavior for any song with no timeline or an incomplete one (including a
+  missing Song End mark) — every existing song keeps working unchanged.
 - **A-B practice loop, segment-snapped** (`refRow`, shown while a reference track is playing) — once
   a song has a complete timeline, "A"/"B" open a segment-picker popup (reusing the `.overlay`/
   `.resultCard` shell) instead of scrubbing to an arbitrary spot; picks are stored as segment
@@ -252,14 +269,13 @@ photos/docs, which depends on this exact syntax staying stable).
   timeline first" hint — there is deliberately no free-scrub fallback once this feature is in play,
   a confirmed decision, not an oversight. `refLoopLabel` shows segment names ("Looping Verse 1 →
   Instrumental Break"), not raw timestamps. While looping, the fed-in interval list is sliced to
-  exactly `loopStartSeg..loopEndSeg`, so the lyric view shows the start segment at the very top of
-  the viewport (scrollTop == that section's own `offsetTop`) and scrolls only through the segments
-  in between, ending right at the end segment's own mark, then snapping back on every repeat — never
-  drifting into the end segment's own content. The audio jump-back itself is still the same plain
-  `timeupdate` check (`currentTime >= loopEnd` → `currentTime = loopStart`) this always was. Toggling
-  LOOP on/off always resets to **off** (full-song) each time the track is (re)started, even though
-  the picks persist per song in prefs indefinitely. Removing the track clears the timeline and all
-  loop fields.
+  exactly `loopStartSeg..loopEndSeg`, so the lyric view shows the start segment CENTERED and scrolls
+  only through the segments in between, ending with the end segment ALSO centered, then snapping
+  back on every repeat — never drifting into the end segment's own content. The audio jump-back
+  itself is still the same plain `timeupdate` check (`currentTime >= loopEnd` → `currentTime =
+  loopStart`) this always was. Toggling LOOP on/off always resets to **off** (full-song) each time the
+  track is (re)started, even though the picks persist per song in prefs indefinitely. Removing the
+  track clears the timeline and all loop fields.
 - **Pausing autoscroll without stopping the track** (`perf.refScrollPaused`) — the stage's own
   play/pause button (`#btnPlay`, ctrlbar) no longer stops a playing reference track when tapped
   (that's the dedicated top-bar note-icon button's job); instead it toggles whether the lyrics keep
@@ -267,6 +283,10 @@ photos/docs, which depends on this exact syntax staying stable).
   `playRef()` resets this to "following" every time a track starts, per spec. With no reference track
   active at all, `#btnPlay`/the speed slider/constant-pace scroll are completely untouched by any of
   this — same behavior as before this feature existed.
+- **Bulk delete** (`renderSelectBar()`, `#btnDeleteSel`) — a fourth button alongside Cancel/Reorder/
+  Share in the library's multi-select bar; `confirm()`-gated, removes every selected song from
+  `songs[]` and saves. Mirrors the existing single-song "Delete song" button's behavior exactly (no
+  extra cleanup of that song's `prefs`/linked audio blob — neither one ever did that).
 - **Notice banner** (`notice.json` + `refreshNotice`) — a pastel-red banner above the library
   search box showing e.g. "Next: Friday 7pm rehearsal" with an optional Open-calendar button. The
   single source of truth is **`notice.json` in the repo root**: edit `text`/`link` on github.com

@@ -374,6 +374,19 @@
     background:#000; color:var(--yellow); padding:6px 12px; border-radius:var(--radius); font-size:13px; font-weight:700; flex-shrink:0;
   }
 
+  /* install prompt banner */
+  .installBar{
+    position:fixed; left:0; right:0; top:0; z-index:90; background:var(--cyan); color:#000;
+    padding:10px 16px calc(10px); padding-top:calc(10px + env(safe-area-inset-top));
+    display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:600;
+    transform:translateY(-100%); transition:transform .25s; max-width:640px; margin:0 auto;
+  }
+  .installBar.show{ transform:translateY(0); }
+  .installBar button{
+    background:#000; color:var(--cyan); padding:6px 12px; border-radius:var(--radius); font-size:13px; font-weight:700; flex-shrink:0;
+  }
+  .installBar .dismiss{ background:transparent; color:#000; padding:4px 6px; font-size:17px; line-height:1; font-weight:800; }
+
   /* notice banner (repo-hosted notice.json) */
   .notice{
     margin:0 14px 8px; padding:7px 12px; border-radius:var(--radius); background:var(--magenta);
@@ -460,6 +473,12 @@
   <span>New version ready.</span>
   <div class="spacer"></div>
   <button id="btnUpdateNow">Refresh</button>
+</div>
+<div class="installBar" id="installBar">
+  <span id="installBarText">Install this app for quick, offline access.</span>
+  <div class="spacer"></div>
+  <button id="btnInstallNow">Install</button>
+  <button id="btnInstallDismiss" class="dismiss" title="Dismiss">&times;</button>
 </div>
 <div class="edgeFlash" id="edgeFlash"></div>
 <div class="grain" id="grain"></div>
@@ -923,11 +942,13 @@ function sectionColor(name){
 // the segment-timeline feature (marking start times, segment-paced autoscroll,
 // segment-snapped looping) — walks the text the same way renderBody() does, so
 // this list lines up positionally with the .sectiontag elements renderBody()
-// actually renders, by construction. Always appends one implicit trailing
-// "Song End" entry (unless the lyrics have no content at all) representing
-// the position of the literal last rendered line — not necessarily inside any
-// {Section} — so the ending of a full playthrough has a real, user-markable
-// anchor to center on, the same way every other segment does.
+// actually renders, by construction. Appends one implicit trailing "Song End"
+// entry representing the position of the literal last rendered line — not
+// necessarily inside any {Section} — so the ending of a full playthrough has
+// a real, user-markable anchor to center on, the same way every other
+// segment does. Skipped when the lyrics already end on their own explicit
+// ending marker (a {Section} named "End", "Song End", or "End Song") — that
+// tag IS the ending anchor then, and doesn't need a duplicate synthetic one.
 function parseSegments(body){
   const lines = (body || '').split('\n');
   const out = [];
@@ -948,7 +969,8 @@ function parseSegments(body){
     if(pending && !pending.guideLine && !isNoteOnly && text) pending.guideLine = text;
     lastContentLine = text || segs.map(seg => seg.text).join('').trim() || lastContentLine;
   }
-  if(lastContentLine) out.push({name: 'Song End', guideLine: lastContentLine, isSongEnd: true});
+  const hasExplicitEnd = out.length > 0 && /^(song\s*end|end\s*song|end)$/i.test(out[out.length-1].name.trim());
+  if(lastContentLine && !hasExplicitEnd) out.push({name: 'Song End', guideLine: lastContentLine, isSongEnd: true});
   return out;
 }
 function renderBody(body, semitoneShift){
@@ -1703,9 +1725,15 @@ function startAutoscroll(container){
 // trailing "Song End" entry (the actual last rendered lyric/chord line).
 function getSegmentDomAnchors(container){
   const tags = Array.from(container.querySelectorAll('.sectiontag'));
-  const contentEls = container.querySelectorAll('.line, .noteline');
   const anchors = tags.map(t => ({el:t, isSongEnd:false}));
-  if(contentEls.length > 0) anchors.push({el: contentEls[contentEls.length-1], isSongEnd:true});
+  // Mirrors parseSegments()'s own "already ends on an explicit marker" check —
+  // must agree on whether the trailing synthetic anchor exists, or timeline
+  // indices stop lining up between the two lists.
+  const hasExplicitEnd = tags.length > 0 && /^(song\s*end|end\s*song|end)$/i.test(tags[tags.length-1].textContent.trim());
+  if(!hasExplicitEnd){
+    const contentEls = container.querySelectorAll('.line, .noteline');
+    if(contentEls.length > 0) anchors.push({el: contentEls[contentEls.length-1], isSongEnd:true});
+  }
   return anchors;
 }
 // Builds absolute scroll-position intervals from a song's marked segment
@@ -2272,6 +2300,14 @@ function renderPerform(id){
     refLoop.active = !refLoop.active;
     renderLoopLabel();
     refreshIntervals();
+    // Turning the loop ON jumps straight into it — otherwise it'd keep
+    // playing wherever it already was until playback happened to reach the
+    // loop range on its own. The lyric view syncs to this via the normal
+    // timeupdate-driven scroll, same as any other seek.
+    if(refLoop.active && refAudio.el){
+      refAudio.el.currentTime = refLoop.start;
+      if(refAudio.el.paused) refAudio.el.play().catch(()=>{});
+    }
   });
   app.querySelector('#refManage').addEventListener('click', () => openRefOptions());
   let refLongPress = null, refPressConsumed = false;
@@ -2628,6 +2664,64 @@ function showUpdateBar(reg){
   }, {once:true});
 }
 
+/* ---------- PWA: install prompt ----------
+   Chrome only fires beforeinstallprompt (and only shows its own automatic
+   mini-infobar) based on its own engagement heuristics — it does NOT retrigger
+   on every single visit, and there is no way for the page to force that. The
+   reliable fix is to capture the event ourselves the moment it fires and show
+   our own persistent banner instead of depending on the browser's built-in UI.
+   iOS Safari has no such event at all — Apple gives web pages no install API,
+   so that path is a plain instructional banner ("tap Share, then Add to Home
+   Screen"), detected via user agent, with no button to click. */
+let deferredInstallPrompt = null;
+function isStandaloneDisplay(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isIOSDevice(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function showInstallBar(mode){
+  if(isStandaloneDisplay() || sessionStorage.getItem('installBarDismissed') === '1') return;
+  const bar = document.getElementById('installBar');
+  const text = document.getElementById('installBarText');
+  const btn = document.getElementById('btnInstallNow');
+  if(mode === 'ios'){
+    text.textContent = 'Install this app: tap Share, then "Add to Home Screen."';
+    btn.classList.add('hidden');
+  } else {
+    text.textContent = 'Install this app for quick, offline access.';
+    btn.classList.remove('hidden');
+  }
+  bar.classList.add('show');
+}
+function hideInstallBar(){
+  document.getElementById('installBar').classList.remove('show');
+}
+function initInstallPrompt(){
+  if(isStandaloneDisplay()) return; // already installed and running as the app — never nag
+  document.getElementById('btnInstallDismiss').addEventListener('click', () => {
+    sessionStorage.setItem('installBarDismissed', '1');
+    hideInstallBar();
+  });
+  document.getElementById('btnInstallNow').addEventListener('click', async () => {
+    if(!deferredInstallPrompt) return;
+    hideInstallBar();
+    deferredInstallPrompt.prompt();
+    try{ await deferredInstallPrompt.userChoice; }catch(e){}
+    deferredInstallPrompt = null;
+  });
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    showInstallBar('android');
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    hideInstallBar();
+  });
+  if(isIOSDevice()) showInstallBar('ios');
+}
+
 /* ---------- boot ---------- */
 try{ history.replaceState({view:'library'}, ''); }catch(e){}
 window.addEventListener('popstate', (e) => {
@@ -2668,6 +2762,7 @@ window.addEventListener('scroll', () => {
 
 render();
 initServiceWorker();
+initInstallPrompt();
 </script>
 </body>
 </html>

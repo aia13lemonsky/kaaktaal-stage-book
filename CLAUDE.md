@@ -237,10 +237,16 @@ photos/docs, which depends on this exact syntax staying stable).
   button (`#btnTlDone`) exits straight back to the performance view — marks already save instantly
   per tap, so there's nothing to explicitly "save"; to come back and re-mark later, long-press the
   reference-track icon and pick Timeline again from the menu (that's the only entry point, by design).
-  `parseSegments()` always appends one implicit trailing **"Song End"** entry — the actual last
-  rendered lyric/chord line, not necessarily inside any `{Section}` — so a full playthrough's ending
-  has a real, user-markable anchor to center on, the same way every other segment does. A "complete"
-  timeline now means every real section AND Song End all have valid, increasing marked times.
+  `parseSegments()` appends one implicit trailing **"Song End"** entry — the actual last rendered
+  lyric/chord line, not necessarily inside any `{Section}` — so a full playthrough's ending has a
+  real, user-markable anchor to center on, the same way every other segment does. **Skipped** when
+  the lyrics already end on their own explicit ending marker — a `{Section}` literally named "End",
+  "Song End", or "End Song" (case-insensitive) — since that tag already plays the ending-anchor role
+  and doesn't need a duplicate. `getSegmentDomAnchors()` makes the identical "already ends explicitly"
+  check (off the last rendered `.sectiontag`'s own text) so the two lists — `parseSegments()`'s and
+  the live DOM anchors' — always agree on whether that trailing entry exists; if they didn't, timeline
+  indices would silently point at the wrong anchor. A "complete" timeline now means every real
+  section AND (if present) Song End all have valid, increasing marked times.
 - **Segment-paced, vertically-CENTERED autoscroll** (`buildSegmentIntervals()` + `startAudioScroll()`
   + `applyCenterSpacers()`) — with a complete timeline, autoscroll paces each section's lyrics to
   that section's own measured duration instead of averaging the whole track, by mapping
@@ -273,8 +279,12 @@ photos/docs, which depends on this exact syntax staying stable).
   only through the segments in between, ending with the end segment ALSO centered, then snapping
   back on every repeat — never drifting into the end segment's own content. The audio jump-back
   itself is still the same plain `timeupdate` check (`currentTime >= loopEnd` → `currentTime =
-  loopStart`) this always was. Toggling LOOP on/off always resets to **off** (full-song) each time the
-  track is (re)started, even though the picks persist per song in prefs indefinitely. Removing the
+  loopStart`) this always was. Turning the LOOP toggle **on** jumps `currentTime` to `loopStart`
+  immediately (and resumes playback if it was paused) rather than waiting for normal playback to
+  reach the loop range on its own — the person taps LOOP expecting to drop straight into practicing
+  that section, not to keep hearing whatever came before it first. Toggling LOOP on/off always resets
+  to **off** (full-song) each time the track is (re)started, even though the picks persist per song
+  in prefs indefinitely. Removing the
   track clears the timeline and all loop fields.
 - **Pausing autoscroll without stopping the track** (`perf.refScrollPaused`) — the stage's own
   play/pause button (`#btnPlay`, ctrlbar) no longer stops a playing reference track when tapped
@@ -287,6 +297,20 @@ photos/docs, which depends on this exact syntax staying stable).
   Share in the library's multi-select bar; `confirm()`-gated, removes every selected song from
   `songs[]` and saves. Mirrors the existing single-song "Delete song" button's behavior exactly (no
   extra cleanup of that song's `prefs`/linked audio blob — neither one ever did that).
+- **Install prompt** (`initInstallPrompt()`, `#installBar`) — a custom, always-shown-when-relevant
+  banner, added because relying on the browser's own automatic "Add to Home Screen" UI is not
+  reliable: Chrome only fires `beforeinstallprompt` (and only shows its own mini-infobar) based on
+  its own engagement heuristics, which the page cannot force to retrigger on every visit — e.g. after
+  an uninstall — and iOS Safari exposes no install API at all. The fix is to capture
+  `beforeinstallprompt` ourselves (`e.preventDefault()`, stash the event, show our own banner with an
+  Install button that calls `deferredInstallPrompt.prompt()`) rather than depend on Chrome's built-in
+  prompt reappearing. On iOS (detected via user agent — no event exists to listen for) the banner
+  shows unconditionally with instructional text ("tap Share, then Add to Home Screen") and no button,
+  since there is nothing to call. Suppressed entirely via `isStandaloneDisplay()`
+  (`display-mode: standalone` media query, or `navigator.standalone` on iOS) whenever the page is
+  already running as the installed app. Dismissing is per-`sessionStorage` (won't nag again this
+  browsing session, but reappears on a genuinely fresh visit if still not installed) — don't make
+  this `localStorage`-persistent, that would silence it forever after one dismissal.
 - **Notice banner** (`notice.json` + `refreshNotice`) — a pastel-red banner above the library
   search box showing e.g. "Next: Friday 7pm rehearsal" with an optional Open-calendar button. The
   single source of truth is **`notice.json` in the repo root**: edit `text`/`link` on github.com

@@ -258,6 +258,18 @@
   }
   .tapbtn:active{ background:var(--yellow); color:#000; }
   .tapbtn:disabled{ opacity:0.35; }
+  /* Basic/Special chart toggle — a chip at the start of the stage header's
+     meta line: chosen before playing, so it stays out of the control rows
+     (where it squeezed the scroll slider). Mustard = Special, sky = Basic. */
+  .modechip{
+    display:inline-block; vertical-align:middle; margin:2px 6px 2px 0; padding:2px 8px;
+    border-radius:var(--radius); border:2px solid var(--yellow); background:var(--yellow-10);
+    color:var(--yellow); font-family:var(--font-display); font-size:10.5px; font-weight:800;
+    letter-spacing:0.5px; line-height:1.4;
+  }
+  .modechip:active{ background:var(--yellow); color:#000; }
+  .modechip.basic{ border-color:var(--silver); color:var(--silver); background:transparent; }
+  .modechip.basic:active{ background:var(--silver); color:#000; }
 
   .refRow{
     display:flex; flex-direction:column; gap:6px; padding:8px 14px; border-bottom:2px solid var(--line);
@@ -415,6 +427,23 @@
     opacity:0; transition:opacity .25s; z-index:60; pointer-events:none;
   }
   .scrollThumb.show{ opacity:0.65; }
+
+  /* speed arrows (replaced the slider — easier to hit mid-song) */
+  .speedpill{ padding:4px; gap:4px; margin-left:auto; }
+  .speedpill button{ width:40px; height:34px; color:var(--yellow); border-color:var(--yellow); touch-action:manipulation; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  .speedpill button:active{ background:var(--yellow); color:#000; }
+  .speedpill .val{ min-width:74px; font-size:13px; }
+  /* ±10-line jump buttons, floating while auto-scroll runs */
+  .jumpBtns{ position:fixed; right:14px; bottom:calc(80px + env(safe-area-inset-bottom)); z-index:46; display:flex; flex-direction:column; gap:12px; }
+  .jumpBtns.hidden{ display:none; }
+  .jumpbtn{
+    width:60px; height:60px; border-radius:var(--radius); background:rgba(39,44,43,0.82);
+    border:2px solid var(--yellow); color:var(--yellow); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:0; touch-action:manipulation;
+    font-family:var(--font-chord); font-size:11px; font-weight:700; line-height:1;
+  }
+  .jumpbtn:active{ background:var(--yellow); color:#000; }
+  .jumpbtn svg{ width:26px; height:26px; }
 
   /* full-screen lyric view */
   .fsbtn{
@@ -735,6 +764,21 @@ function transposeChord(chord, semitones){
   return result;
 }
 
+// Basic / Special versions of a song — entered MANUALLY, nothing is ever
+// simplified or dropped automatically. The chart is written once; a chord
+// that differs between versions is spelled [Special|Basic], e.g. [Em9|Em]
+// (Special shows Em9, Basic shows Em). A plain [G] is the same in both.
+// <<*cue>> is a Special-only note. One body (not two copies) means the
+// lyrics and {Section} list can't drift apart, so timelines/loops (indexed
+// by section) work in both modes.
+function chordForMode(raw, mode){
+  const bar = raw.indexOf('|');
+  if(bar === -1) return raw;
+  const special = raw.slice(0, bar).trim();
+  const basic = raw.slice(bar + 1).trim();
+  return mode === 'basic' ? (basic || special) : (special || basic);
+}
+
 const OPEN_SHAPES = {
   'C':    {frets:[null,3,2,0,1,0]},
   'D':    {frets:[null,null,0,2,3,2]},
@@ -919,7 +963,9 @@ function tokenizeLine(line){
       lastIndex = lyricEnd;
       re.lastIndex = lyricEnd;
     } else {
-      segs.push({type:'note', text: m[2]});
+      // <<*cue>> = a special-version-only note: shown in Special, hidden in Basic.
+      const isSpecial = m[2].startsWith('*');
+      segs.push({type:'note', text: isSpecial ? m[2].slice(1).trim() : m[2], special: isSpecial});
       lastIndex = re.lastIndex;
     }
   }
@@ -973,7 +1019,10 @@ function parseSegments(body){
   if(lastContentLine && !hasExplicitEnd) out.push({name: 'Song End', guideLine: lastContentLine, isSongEnd: true});
   return out;
 }
-function renderBody(body, semitoneShift){
+// mode: 'special' (default — the chart exactly as written) or 'basic'
+// (simplified chords, special-only <<*cues>> hidden). See chordForMode().
+function renderBody(body, semitoneShift, mode){
+  mode = mode === 'basic' ? 'basic' : 'special';
   const lines = body.split('\n');
   let html = '';
   for(const rawLine of lines){
@@ -982,7 +1031,13 @@ function renderBody(body, semitoneShift){
     const sectionMatch = line.trim().match(/^\{(.+)\}$/);
     if(sectionMatch){ html += `<div class="sectiontag" style="border-left-color:${sectionColor(sectionMatch[1])}">${escapeHtml(sectionMatch[1])}</div>`; continue; }
 
-    const segs = tokenizeLine(line);
+    let segs = tokenizeLine(line);
+    if(mode === 'basic'){
+      const before = segs.length;
+      segs = segs.filter(seg => !(seg.type === 'note' && seg.special));
+      // A line that held nothing but special cues disappears entirely in Basic.
+      if(segs.length === 0 && before > 0) continue;
+    }
     if(segs.length === 1 && segs[0].type === 'note'){
       html += `<div class="noteline">${escapeHtml(segs[0].text)}</div>`;
       continue;
@@ -990,7 +1045,7 @@ function renderBody(body, semitoneShift){
     let out = '<div class="line">';
     for(const seg of segs){
       if(seg.type === 'chord'){
-        const displayChord = transposeChord(seg.chord, semitoneShift);
+        const displayChord = transposeChord(chordForMode(seg.chord, mode), semitoneShift);
         // A chord with no lyric under it (instrumental sections like "[C]  [G]")
         // gets an invisible copy of its own name as the lyric, so each chord
         // reserves its real width instead of stacking on the next one.
@@ -1552,7 +1607,7 @@ function renderEditor(id){
       </div>
       <div class="row3">
         <div class="field"><label>Key</label><input id="fKey" value="${escapeHtml(s.key||'')}" placeholder="G"></div>
-        <div class="field"><label>Capo</label><input id="fCapo" value="${escapeHtml(s.capo||'')}" placeholder="2"></div>
+        <div class="field"><label>Capo (for shapes)</label><input id="fCapo" value="${escapeHtml(s.capo||'')}" placeholder="2"></div>
         <div class="field"><label>BPM</label><input id="fBpm" inputmode="numeric" value="${escapeHtml(s.bpm||'')}" placeholder="96"></div>
         <div class="field"><label>Time</label><input id="fTimeSig" value="${escapeHtml(s.timeSig||'4/4')}" placeholder="4/4"></div>
       </div>
@@ -1565,6 +1620,8 @@ function renderEditor(id){
         <span class="red">[G]</span> chord right before its syllable — shows in bright volt green, above the word.<br>
         <span class="blue">&lt;&lt;softer here&gt;&gt;</span> instruction or note — shows in indigo, inline or on its own line.<br>
         <span class="amber">{Chorus}</span> section label, on its own line.<br>
+        <b>Basic / Special:</b> write chords in their full voicings — Basic simplifies them automatically (Em9 → Em, Cmaj7 → C, D/F# → D).
+        <span class="red">[Em9|G]</span> sets the Basic chord yourself. <span class="blue">&lt;&lt;*cue&gt;&gt;</span> = a note shown in Special only.<br>
         Lyrics with no marker just show in white. Blank lines add spacing.
       </div>
       <div class="field"><label>Your name (shown when you share updates)</label><input id="fEditor" value="${escapeHtml(getEditorName())}" placeholder="e.g. Aia"></div>
@@ -1945,6 +2002,13 @@ function renderPerform(id){
   perf.semitone = (typeof myPref.semitone === 'number') ? myPref.semitone : 0;
   perf.secPerLine = myPref.secPerLine || 10;
   perf.fontScale = 1;
+  // Basic/Special chart version — per song, per phone (a reading preference,
+  // like the saved key/speed, so it never touches the song's version).
+  // Default is Special: the chart exactly as written, same as before this
+  // feature existed. The toggle only appears when the two actually differ.
+  perf.chordMode = myPref.chordMode === 'basic' ? 'basic' : 'special';
+  const hasVariants = renderBody(s.body || '', 0, 'basic') !== renderBody(s.body || '', 0, 'special');
+  if(!hasVariants) perf.chordMode = 'special';
   const ver = s.version || 1;
   const inSetlist = route.setlistId ? setlists.find(sl => sl.id === route.setlistId) : null;
   const posLabel = inSetlist ? `${route.setlistIndex+1} / ${inSetlist.songIds.length} · ${escapeHtml(inSetlist.name)}` : '';
@@ -1955,7 +2019,7 @@ function renderPerform(id){
         <button class="iconbtn back" id="btnBack">${icon('back')}</button>
         <div class="titles">
           <div class="t1">${escapeHtml(s.title)}</div>
-          <div class="t2">${escapeHtml(s.artist||'')}${s.bpm ? ' · '+s.bpm+' bpm' : ''}${s.capo ? ' · capo '+s.capo : ''} · <span class="ver">v${ver}</span>${s.updatedBy ? ' by '+escapeHtml(s.updatedBy) : ''}</div>
+          <div class="t2">${hasVariants ? `<button class="modechip ${perf.chordMode}" id="btnChordMode" title="Switch between the basic and special version of this chart">${perf.chordMode === 'basic' ? 'BASIC' : 'SPECIAL'}</button>` : ''}${escapeHtml(s.artist||'')}${s.bpm ? ' · '+s.bpm+' bpm' : ''}${capoLabel(s.capo)} · <span class="ver">v${ver}</span>${s.updatedBy ? ' by '+escapeHtml(s.updatedBy) : ''}</div>
         </div>
         ${inSetlist ? `<div class="setpos">${posLabel}</div>` : ''}
         <button class="iconbtn" id="btnRefAudio" title="Reference track (long-press to change)">${icon('music')}</button>
@@ -1980,8 +2044,11 @@ function renderPerform(id){
       </div>
       <div class="subrow">
         <label>Scroll</label>
-        <input type="range" id="speedSlider" min="0.5" max="15" step="0.5" value="${perf.secPerLine}">
-        <span class="speedval" id="speedVal">${perf.secPerLine}s/line</span>
+        <div class="pill speedpill">
+          <button id="speedSlower" title="Slower (tap, or hold to keep going)">${icon('chevronDown',18)}</button>
+          <span class="val" id="speedVal">${fmtSpeed(perf.secPerLine)}</span>
+          <button id="speedFaster" title="Faster (tap, or hold to keep going)">${icon('chevronUp',18)}</button>
+        </div>
         <button class="smallbtn" id="btnPrefSave" title="Save current speed &amp; key as this song's default">${icon('star',15)}</button>
         <button class="smallbtn" id="btnPrefRevert" title="Back to this song's saved default">${icon('undo',15)}</button>
       </div>
@@ -2010,8 +2077,12 @@ function renderPerform(id){
       <div class="lyricsArea">
         <div class="scrollProgress"><div class="fill" id="scrollProgressFill"></div></div>
         <div class="lyricsWrap" id="lyricsWrap" style="font-size:17px;">
-          ${renderBody(s.body || '', perf.semitone)}
+          ${renderBody(s.body || '', perf.semitone, perf.chordMode)}
         </div>
+      </div>
+      <div class="jumpBtns hidden" id="jumpBtns">
+        <button class="jumpbtn" id="btnJumpBack" title="Back 10 lines">${icon('chevronUp',26)}<span>10</span></button>
+        <button class="jumpbtn" id="btnJumpFwd" title="Forward 10 lines">${icon('chevronDown',26)}<span>10</span></button>
       </div>
       <button class="fsbtn" id="btnFS" title="Full screen">${icon('expand')}</button>
       <input type="file" id="refAudioFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus,.wma">
@@ -2095,6 +2166,7 @@ function renderPerform(id){
   app.querySelector('#btnEdit').addEventListener('click', () => go('editor', id));
 
   const PLAY_SVG = '<path d="M8 5v14l11-7-11-7z" fill="#EAC119"/>';
+  function setPlayIcon(svg){ playIcon.innerHTML = svg; syncJumpBtns(); }
   const PAUSE_SVG = '<rect x="6" y="5" width="4" height="14" fill="#EAC119"/><rect x="14" y="5" width="4" height="14" fill="#EAC119"/>';
 
   /* ---- reference track (personal, per-phone; never affects song version) ---- */
@@ -2168,7 +2240,7 @@ function renderPerform(id){
     btnMetroEl.style.opacity = '';
     refRow.classList.add('hidden');
     refIcon();
-    playIcon.innerHTML = PLAY_SVG;
+    setPlayIcon(PLAY_SVG);
   }
   // Opens a small popup listing the song's marked segments so the person can
   // pick loop start/end BY SECTION instead of scrubbing to an arbitrary spot —
@@ -2280,7 +2352,7 @@ function renderPerform(id){
     el.addEventListener('ended', () => { if(refAudio.el === el) stopRef(); });
     try{ await el.play(); }catch(e){ if(watermark) watermark.classList.remove('pulse'); showToast('Could not play the linked track'); stopRef(); return; }
     refIcon();
-    playIcon.innerHTML = PAUSE_SVG;
+    setPlayIcon(PAUSE_SVG);
   }
   refSeek.addEventListener('input', () => {
     refSeeking = true;
@@ -2382,7 +2454,6 @@ function renderPerform(id){
   });
 
   /* ---- per-song default speed & key ---- */
-  const speedSlider = app.querySelector('#speedSlider');
   app.querySelector('#btnPrefSave').addEventListener('click', () => {
     const p = songPref(id);
     p.secPerLine = perf.secPerLine;
@@ -2394,16 +2465,34 @@ function renderPerform(id){
     const p = (prefs.songs && prefs.songs[id]) || {};
     perf.secPerLine = p.secPerLine || 10;
     perf.semitone = (typeof p.semitone === 'number') ? p.semitone : 0;
-    speedSlider.value = perf.secPerLine;
-    speedVal.textContent = perf.secPerLine + 's/line';
+    speedVal.textContent = fmtSpeed(perf.secPerLine);
     refreshChords();
     showToast('Back to default');
   });
 
+  const btnChordMode = app.querySelector('#btnChordMode');
+  if(btnChordMode){
+    btnChordMode.addEventListener('click', (e) => {
+      perf.chordMode = perf.chordMode === 'basic' ? 'special' : 'basic';
+      songPref(id).chordMode = perf.chordMode;
+      savePrefs();
+      const btn = e.currentTarget;
+      btn.textContent = perf.chordMode === 'basic' ? 'BASIC' : 'SPECIAL';
+      btn.classList.toggle('basic', perf.chordMode === 'basic');
+      btn.classList.toggle('special', perf.chordMode === 'special');
+      // Keep the reader's place: same relative scroll position after re-render.
+      const max = lyricsWrap.scrollHeight - lyricsWrap.clientHeight;
+      const frac = max > 0 ? lyricsWrap.scrollTop / max : 0;
+      refreshChords();
+      const newMax = lyricsWrap.scrollHeight - lyricsWrap.clientHeight;
+      if(newMax > 0){ lyricsWrap.scrollTop = frac * newMax; scrollAccum = lyricsWrap.scrollTop; }
+      showToast(perf.chordMode === 'basic' ? 'Basic version' : 'Special version');
+    });
+  }
   app.querySelector('#keyUp').addEventListener('click', () => { perf.semitone++; refreshChords(); });
   app.querySelector('#keyDown').addEventListener('click', () => { perf.semitone--; refreshChords(); });
   function refreshChords(){
-    lyricsWrap.innerHTML = renderBody(s.body || '', perf.semitone);
+    lyricsWrap.innerHTML = renderBody(s.body || '', perf.semitone, perf.chordMode);
     keyVal.textContent = transposeKeyLabel(s.key, perf.semitone);
     attachChordTaps();
     updateScrollProgress();
@@ -2428,23 +2517,65 @@ function renderPerform(id){
     // listening without the scroll racing ahead or lagging behind.
     if(refAudio.playing){
       perf.refScrollPaused = !perf.refScrollPaused;
-      playIcon.innerHTML = perf.refScrollPaused ? PLAY_SVG : PAUSE_SVG;
+      setPlayIcon(perf.refScrollPaused ? PLAY_SVG : PAUSE_SVG);
       return;
     }
     if(perf.scrolling){
       stopAutoscroll();
-      playIcon.innerHTML = PLAY_SVG;
+      setPlayIcon(PLAY_SVG);
     } else {
       startAutoscroll(lyricsWrap);
-      playIcon.innerHTML = PAUSE_SVG;
+      setPlayIcon(PAUSE_SVG);
     }
   });
-  // Speed changes apply live — the scroll loop reads perf.secPerLine every
-  // frame, so dragging the slider never stops or restarts the scroll.
-  speedSlider.addEventListener('input', e => {
-    perf.secPerLine = Number(e.target.value);
-    speedVal.textContent = perf.secPerLine + 's/line';
-  });
+  // Speed: tappable arrows instead of a slider (a slider is hard to hit
+  // precisely mid-performance). Tap = one 0.5s step; hold = keeps stepping,
+  // speeding up the longer it's held. Applies live — the scroll loop reads
+  // perf.secPerLine every frame, so this never stops or restarts the scroll.
+  // Unit is still seconds per line: Faster lowers the number.
+  function stepSpeed(dir){
+    const v = Math.round((perf.secPerLine + dir * 0.5) * 2) / 2;
+    perf.secPerLine = Math.min(15, Math.max(0.5, v));
+    speedVal.textContent = fmtSpeed(perf.secPerLine);
+  }
+  function holdRepeat(btn, fn){
+    let delayT = null, repT = null, count = 0;
+    const stop = () => { clearTimeout(delayT); clearTimeout(repT); delayT = repT = null; };
+    const tick = () => { fn(); count++; repT = setTimeout(tick, count > 8 ? 60 : 130); };
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      stop(); count = 0; fn();
+      delayT = setTimeout(tick, 380);
+    });
+    ['pointerup','pointerleave','pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  holdRepeat(app.querySelector('#speedSlower'), () => stepSpeed(+1));
+  holdRepeat(app.querySelector('#speedFaster'), () => stepSpeed(-1));
+
+  // Jump ±10 lines: floating thumb-size buttons, shown only while constant-pace
+  // auto-scroll is running (with a reference track the scroll is locked to the
+  // audio's time, so a jump would just be pulled back on the next frame).
+  // Counts real lyric/note lines (.line/.noteline), not section tags or blanks.
+  const jumpBtns = app.querySelector('#jumpBtns');
+  function syncJumpBtns(){
+    jumpBtns.classList.toggle('hidden', !(perf.scrolling && !refAudio.playing));
+  }
+  function jumpLines(n){
+    const blocks = Array.from(lyricsWrap.querySelectorAll('.line, .noteline'));
+    if(!blocks.length) return;
+    const wrapTop = lyricsWrap.getBoundingClientRect().top;
+    const tops = blocks.map(b => b.getBoundingClientRect().top - wrapTop + lyricsWrap.scrollTop);
+    let i = tops.findIndex(t => t >= lyricsWrap.scrollTop + 4);
+    if(i === -1) i = blocks.length - 1;
+    const j = Math.max(0, Math.min(blocks.length - 1, i + n));
+    const max = lyricsWrap.scrollHeight - lyricsWrap.clientHeight;
+    lyricsWrap.scrollTop = Math.max(0, Math.min(max, tops[j] - 12));
+    scrollAccum = lyricsWrap.scrollTop; // so the auto-scroll loop carries on from here
+    updateScrollProgress();
+  }
+  app.querySelector('#btnJumpBack').addEventListener('click', (e) => { e.stopPropagation(); jumpLines(-10); });
+  app.querySelector('#btnJumpFwd').addEventListener('click', (e) => { e.stopPropagation(); jumpLines(10); });
 
   // While a finger is on the lyrics, auto-scroll follows the user instead of
   // fighting them, then resumes from wherever they let go. Only the pause
@@ -2619,6 +2750,21 @@ function renderTimeline(id){
   });
 }
 
+// Capo convention: charts always show the REAL (sounding) chords, so anyone can
+// play them as written. The capo field is the player's own shortcut: put the
+// capo on fret N and transpose −N in the app to get familiar shapes. Spelling
+// out "shapes −N" keeps a bandmate from capo-ing AND playing the shown chords
+// (which would land N semitones too high). Capo 0/blank shows nothing.
+function capoLabel(capo){
+  const raw = String(capo == null ? '' : capo).trim();
+  if(!raw) return '';
+  const n = parseInt(raw, 10);
+  if(String(n) === raw){
+    return n > 0 ? ` · capo ${n} · shapes \u2212${n}` : '';
+  }
+  return ' · capo ' + escapeHtml(raw);
+}
+function fmtSpeed(v){ return (Number.isInteger(v) ? v : v.toFixed(1)) + 's/line'; }
 function transposeKeyLabel(key, semitone){
   if(!key) return semitone === 0 ? '—' : (semitone>0?'+':'')+semitone;
   return transposeChord(key, semitone);

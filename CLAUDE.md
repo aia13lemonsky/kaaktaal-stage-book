@@ -39,7 +39,8 @@ doubt, favor the option that is less likely to break on stage over the one that 
     linked reference-track names (`audioName`), a segment timeline (`timeline`, array of `{time}` in
     seconds, positionally parallel to `parseSegments(s.body)`) and A-B practice loop points as
     segment indices (`loopStartSeg`/`loopEndSeg`, resolved to seconds via `timeline` — NOT whether
-    looping is active; that always resets to off, see Features), custom library order
+    looping is active; that always resets to off, see Features), the Basic/Special chart choice
+    (`chordMode`: `'basic'` or absent = Special), custom library order
     (`songOrder`), and the cached notice banner (`noticeCache`). Everything in here is deliberately
     outside the song schema so it can't churn versions or leak into share files.
   - Plus one IndexedDB database, `stagebook-audio` (store `tracks`, keyed by song id) — reference
@@ -90,10 +91,13 @@ doubt, favor the option that is less likely to break on stage over the one that 
 | `[G]` | chord, immediately before the syllable it's played on | pastel chrome yellow `--chord` (#F0DE8A), sized a bit larger than lyric text for on-stage visibility |
 | `<<note>>` | instruction/note, inline mid-lyric or alone on its own line | blue `--blue` |
 | `{Section}` | section label, own line | muted amber-bordered caps |
+| `[Em9\|Em]` | chord that differs between versions: Special shows `Em9`, Basic shows `Em` (entered manually; plain `[G]` = same in both) | same as a chord |
+| `<<*cue>>` | Special-only note: shown in Special, hidden in Basic (a line of only these disappears) | same as a note |
 | blank line | spacing | — |
 | anything else | plain lyric | `--ink` |
 
-Do not change this notation format — it's documented externally too (see
+The last two rows are an additive extension (see "Basic / Special chart versions" below) — every
+chart written before it renders exactly as it did. Do not change this notation format — it's documented externally too (see
 `kaaktaal-song-format-guide.md`, used in a separate Claude Project for converting songs from
 photos/docs, which depends on this exact syntax staying stable).
 
@@ -111,13 +115,13 @@ photos/docs, which depends on this exact syntax staying stable).
   results are deduped by fret pattern. E/A-shape barre forms approximate `maj7` as `maj` (no accurate
   6-string movable maj7 pattern is wired in); the D-shape form has a real maj7 pattern instead.
   Clearly labeled "approximate" whenever a shape isn't an exact voicing, same as before.
-- **Auto-scroll** — slider is **seconds per line** (`perf.secPerLine`, 0.5–15s/line), measured
+- **Auto-scroll** — speed is **seconds per line** (now set with tappable arrows, see below; it was a slider) (`perf.secPerLine`, 0.5–15s/line), measured
   against actual rendered line height (`measureLineHeight`), not raw pixels, and not BPM-linked
   (that was a deliberate choice, confirmed with the person — don't silently link it to BPM). This
   unit replaced an earlier "lines per second" framing: at the slow end (ballads/rubato), fractional
   lines/sec values were too coarse to fine-tune and still felt too fast even at the slider's floor;
   seconds-per-line gives real, extendable numbers at the slow end instead.
-  **Only the pause button (or leaving the view) stops the scroll.** Slider changes apply live —
+  **Only the pause button (or leaving the view) stops the scroll.** Speed changes apply live —
   the loop reads `perf.secPerLine` every frame. Touching the lyrics does NOT stop scrolling
   (an earlier tap-to-pause was removed after live testing: thumb drags near the slider kept
   killing the scroll mid-song); instead `perf.holdScroll` makes the loop follow the user's finger
@@ -320,6 +324,41 @@ photos/docs, which depends on this exact syntax staying stable).
   the app's ONE sanctioned runtime network call, same-origin only.
 - **Setlist progress strip** (`.progressStrip`) — thin amber fill bar under the stage header, sized
   to `(index+1)/total`, next to the existing "3 of 8" text badge.
+- **Basic / Special chart versions** (`chordForMode`, `renderBody(body, shift, mode)`) — same
+  lyrics, two readings of one chart, **entered manually — the app never simplifies or drops a chord
+  on its own** (an automatic triad-reduction existed for one iteration and was removed at the
+  person's explicit request: "do not drop anything automatically"; don't bring it back). A chord
+  that differs is written `[Special|Basic]`, e.g. `[Em9|Em]`; a plain `[G]` shows identically in
+  both. `<<*cue>>` notes are Special-only. Deliberately ONE body, not two copies: lyrics and the
+  `{Section}` list can't drift apart, so timelines/A-B loops (indexed by section) stay valid in both
+  modes. Special is the default. The choice is per song, per phone (`prefs.songs[id].chordMode`),
+  never touches the song object/version; the chart content (`|` chords, `<<*cues>>`) is part of
+  `body`, so it travels with export/import. Toggle = the `.modechip` (`#btnChordMode`) at the start
+  of the stage header's meta line, shown only when the song actually has a `|` chord or `<<*cue>>`.
+  It was first tried in the ctrlbar (fell off-screen at 390px) and the scroll subrow (crushed the
+  speed control at 360px) — it's a before-the-song choice, so it lives in the header; don't move it
+  into the control rows. Switching keeps the reader's relative scroll position.
+- **Capo convention + header label** (`capoLabel()`) — charts ALWAYS show the real, sounding
+  chords (concert pitch) so anyone can play them as written. The `capo` field is Aia's personal
+  shortcut, not a pitch statement: capo on fret N + transpose −N in the app = his familiar shapes
+  (he can ★-save that −N as the song's per-phone default). So the stage header renders a numeric
+  capo as "capo N · shapes −N" — explicitly so a bandmate doesn't capo AND play the shown chords
+  (which would land N semitones sharp). Capo 0/blank shows nothing (it used to print "capo 0");
+  non-numeric text shows as-is. Editor label reads "Capo (for shapes)". Don't "fix" charts by
+  baking the capo into the chords.
+- **Speed arrows replaced the scroll slider** (`.speedpill`, `#speedSlower`/`#speedFaster`,
+  `stepSpeed()`/`holdRepeat()`) — the slider was hard to hit precisely mid-performance. Tap = one
+  0.5 s/line step; press-and-hold auto-repeats (after ~380ms, then accelerating). Range still
+  0.5–15 s/line, unit unchanged (Faster lowers the number). Uses pointer events with
+  contextmenu/callout suppressed so a long-press never opens a phone menu.
+- **±10-line jump buttons** (`#jumpBtns`, `jumpLines(n)`, `syncJumpBtns()`) — two thumb-size
+  (60px) floating buttons above the full-screen button, visible ONLY while constant-pace auto-scroll
+  runs (all play/pause icon changes go through `setPlayIcon()`, which re-syncs them). Counts real
+  `.line`/`.noteline` elements, not section tags or blank spacers, and lands the target line near the
+  top; resets `scrollAccum` so the auto-scroll continues from the new spot instead of snapping back.
+  Hidden while a reference track drives the scroll — there the position is locked to the audio's
+  time, so a jump would be undone next frame (a jump that also seeks the audio would be the way to
+  add it there, if ever asked).
 - **Full-screen edge-flash metronome** (`triggerEdgeFlash`, `#edgeFlash`) — optional alternative to
   the dot row for a loud/bright stage: flashes the screen edges on each beat (red on beat 1, amber
   otherwise). Toggle state persists via `stagebook_metro_flash`.

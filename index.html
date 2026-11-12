@@ -399,6 +399,20 @@
   }
   .installBar .dismiss{ background:transparent; color:#000; padding:4px 6px; font-size:17px; line-height:1; font-weight:800; }
 
+  /* Swar tile — opens the companion song-learning/arranging page (swar.html, same site) */
+  .swarTile{
+    margin:0 14px 12px; padding:10px 14px; border-radius:var(--radius);
+    border:var(--border-w) solid var(--yellow); background:var(--yellow-10); color:var(--ink);
+    display:flex; align-items:center; gap:12px; text-decoration:none;
+  }
+  .swarTile .ic{ color:var(--yellow); display:flex; flex-shrink:0; }
+  .swarTile .tx{ flex:1; min-width:0; }
+  .swarTile .tx b{ display:block; font-family:var(--font-display); font-weight:800; font-size:15px; letter-spacing:1px; text-transform:uppercase; color:var(--yellow); }
+  .swarTile .tx small{ display:block; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .swarTile .go{ color:var(--yellow); display:flex; }
+  .swarTile:active{ background:var(--yellow); }
+  .swarTile:active .ic, .swarTile:active .tx b, .swarTile:active .tx small, .swarTile:active .go{ color:#000; }
+
   /* notice banner (repo-hosted notice.json) */
   .notice{
     margin:0 14px 8px; padding:7px 12px; border-radius:var(--radius); background:var(--magenta);
@@ -688,6 +702,8 @@ const ICON_STROKE = {
   mute: 'M4 9v6h4l5 5V4L8 9H4zM16 9l5 5M21 9l-5 5',
   expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
   pause: 'M9 5v14M15 5v14',
+  chevronRight: 'M9 5l7 7-7 7',
+  wave: 'M2 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0',
 };
 const ICON_FILL = {
   flash: 'M13 2 4 14h6l-1 8 9-12h-6z',
@@ -1233,6 +1249,7 @@ function renderLibrary(filter=''){
       <button class="iconbtn" id="btnImport" title="Import / update songs">${icon('upload')}</button>
     </div>
     <div class="notice hidden" id="noticeBar"><span class="txt" id="noticeText"></span><button id="noticeBtn" class="hidden">Open</button></div>
+    ${selectMode ? '' : `<a class="swarTile" href="swar.html"><span class="ic">${icon('wave', 24)}</span><span class="tx"><b>Swar</b><small>Learn songs from recordings · sketch arrangements</small></span><span class="go">${icon('chevronRight', 18)}</span></a>`}
     <input class="search" id="searchBox" placeholder="Search by title, artist, or nickname..." value="${escapeHtml(filter)}">
     <div class="count" id="countLine"></div>
     <div class="songlist" id="songlist"></div>

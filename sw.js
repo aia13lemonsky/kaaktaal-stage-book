@@ -1,11 +1,12 @@
 // Bump this string on every deploy — it's the only thing that makes the
 // "update available" prompt fire. Same content with the same name here means
 // clients never hear about the change.
-const CACHE_NAME = 'stagebook-v14';
+const CACHE_NAME = 'stagebook-v16';
 
 const APP_SHELL = [
   './',
   './index.html',
+  './swar.html',
   './manifest.json',
   './notice.json',
   './kaaktaal-badge-192.png',

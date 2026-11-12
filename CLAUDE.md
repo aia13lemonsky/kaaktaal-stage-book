@@ -363,6 +363,60 @@ photos/docs, which depends on this exact syntax staying stable).
   the dot row for a loud/bright stage: flashes the screen edges on each beat (red on beat 1, amber
   otherwise). Toggle state persists via `stagebook_metro_flash`.
 
+## Swar — companion page (`swar.html`)
+
+A second, self-contained page living next to `index.html`: **Swar** learns a song from a
+recording (chords, beats/bars, sections, key, tempo, melody notes, placeholder lyric lines), lets
+the person fix everything in an editable song document, plays the chords back (piano or soft pad,
+with optional click) over or instead of the recording, and also works as an **arrangement sketchpad
+with no recording** (sections in bars, chords placed on a beat grid, lyrics typed in, playback).
+It is opened from the **Swar tile** on the library home (`.swarTile`, between the notice banner and
+the search box, hidden in select mode) — a plain `<a href="swar.html">`, so the hardware back gesture
+returns to the Playbook normally. Swar's header has a "← Playbook" link back.
+
+- **It does not change the core app's architecture.** `index.html` is still the single-file app; Swar
+  is a separate single-file page (vanilla JS, no build step at runtime, no framework) that the core
+  app only links to. `swar.html` is the built file — edit it directly; there is no separate source
+  checked in. Same no-network rule as the core app: the Playbook build of Swar loads no web fonts
+  and makes no third-party calls (a claude.ai-hosted build of the same tool exists separately and is
+  the only one that uses fonts/Drive/claude.ai storage — none of that code runs here, it is
+  feature-detected off via `window.claude` being absent).
+- **Precached** by `sw.js` (`./swar.html` in `APP_SHELL`), so it works offline like the rest.
+  Same rule as always: **bump `CACHE_NAME`** when `swar.html` changes.
+- **"Save to Playbook"** (Swar toolbar + Export dialog) writes straight into this app's storage,
+  because the two pages share an origin. It follows the Playbook's own rules exactly:
+  - Upsert into `stagebook_songs_v1` by `id` (`s-` + slug of the first alias, else the title). A new
+    song gets `version: 1`; an existing one is replaced as `version + 1`, with the old `body` kept in
+    `prevBody` (so the editor's one-step "Undo last edit" works), and `versionSnapshot` untouched.
+    `updatedBy` comes from `stagebook_editor_name` when set. Only schema fields are written.
+  - The body uses this app's notation unchanged: one body for both versions, `[Special|Basic]` only
+    where Swar's two chord layers differ, plain `[C]` otherwise, `<<*cue>>` for Special-only notes.
+    (Swar's own drafts simplify the Basic layer only for colour chords — sus, add9, 9+, slash basses;
+    7/m7/maj7 stay. Anything the person sets in Swar is written as-is; the Playbook itself still never
+    simplifies anything.) Note the notation can't express a chord that exists in only one version:
+    `chordForMode` falls back to the other side, so Swar writes such a chord as a plain `[X]`.
+  - Optional, per phone, same tier as the existing reference-track feature: the recording is copied
+    into `stagebook-audio`/`tracks` under the song id, `prefs.songs[id].audioName` set, and
+    `prefs.songs[id].timeline` filled from Swar's section start times — positionally parallel to
+    `parseSegments(body)` including the trailing "Song End" entry (Swar mirrors that function's rules,
+    including the explicit-End skip), strictly increasing, so segment-paced centred autoscroll and the
+    A-B loop work immediately. Linking clears `loopStartSeg`/`loopEndSeg` (old picks may not fit the
+    new sections). Never touches the song's version.
+- **Version-only chords.** Swar keeps a Special and a Basic chord layer and lets either have chords
+  the other doesn't. Since `chordForMode` falls back to the other side when one is empty, Swar writes a
+  version-only chord as `[X|held]` / `[held|X]`, where `held` is the chord the other version is already
+  playing at that point — so on stage that version simply shows the chord it was holding. (A
+  version-only chord before the other version's first chord can only be written plain.)
+- **Transposed recordings.** Swar can pitch-shift a recording by ±7 semitones while keeping its exact
+  length (phase vocoder, all on the phone). If one is active when saving, the transposed audio is the
+  one linked as the reference track, and its name says so (e.g. `song (+2).wav`); section times still
+  line up because the length is unchanged.
+- **Swar's own storage** (separate keys so it can't collide with the Playbook's): its song library in
+  `localStorage` under `swaralipi:v2:*` (the tool's original name), and recently opened recordings in
+  its own IndexedDB `swaralipi` (store `audio`) so a reopened song can play straight away. That is a
+  second IndexedDB database on this origin, owned by Swar, not the core app — the core app's rule of
+  "only `stagebook-audio`" still holds for `index.html` itself.
+
 ## What's NOT built yet — this is the actual work
 
 1. **Hosting**: done — live on GitHub Pages, deployed from `master` / root. Repo has a `.nojekyll`
@@ -499,6 +553,7 @@ Any new UI should read as an extension of all this, not a departure.
 
 ## Files in this handoff
 
+- `swar.html` — Swar, the companion learn/arrange page linked from the library home (see "Swar" above).
 - `index.html` — the current app, single source of truth. Was named `kaaktaal-stage-book.html`
   before hosting setup; renamed so GitHub Pages serves it at the domain root — if older notes
   mention the old filename, that rename is why.
